@@ -1,0 +1,125 @@
+{
+  "tileSize": 32,
+  "tiles": [
+    {
+      "id": 0,
+      "name": "Grass",
+      "walkable": true,
+      "category": "terrain",
+      "hitbox": {
+        "x": 0,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      }
+    },
+    {
+      "id": 1,
+      "name": "Water",
+      "walkable": false,
+      "category": "terrain",
+      "hitbox": {
+        "x": 0,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      }
+    },
+    {
+      "id": 2,
+      "name": "Tree",
+      "walkable": false,
+      "category": "obstacle",
+      "hitbox": {
+        "x": 8,
+        "y": 8,
+        "width": 16,
+        "height": 16
+      }
+    },
+    {
+      "id": 3,
+      "name": "Rock",
+      "walkable": false,
+      "category": "obstacle",
+      "hitbox": {
+        "x": 8,
+        "y": 8,
+        "width": 16,
+        "height": 16
+      }
+    },
+    {
+      "id": 4,
+      "name": "Wall",
+      "walkable": false,
+      "category": "wall",
+      "hitbox": {
+        "x": 0,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      }
+    },
+    {
+      "id": 5,
+      "name": "Goal",
+      "walkable": true,
+      "category": "special",
+      "hitbox": {
+        "x": 0,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      }
+    },
+    {
+      "id": 6,
+      "name": "Sand",
+      "walkable": true,
+      "category": "terrain",
+      "hitbox": {
+        "x": 0,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      }
+    },
+    {
+      "id": 7,
+      "name": "Bridge",
+      "walkable": true,
+      "category": "terrain",
+      "hitbox": {
+        "x": 0,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      }
+    },
+    {
+      "id": 8,
+      "name": "Chest",
+      "walkable": false,
+      "category": "interactive",
+      "hitbox": {
+        "x": 4,
+        "y": 4,
+        "width": 24,
+        "height": 24
+      }
+    },
+    {
+      "id": 9,
+      "name": "Door",
+      "walkable": true,
+      "category": "special",
+      "hitbox": {
+        "x": 0,
+        "y": 0,
+        "width": 32,
+        "height": 32
+      }
+    }
+  ]
+}

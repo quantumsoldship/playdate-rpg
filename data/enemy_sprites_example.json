@@ -1,0 +1,29 @@
+{
+  "enemies": [
+    {
+      "spriteKey": "slime",
+      "name": "Slime",
+      "image": "source/images/enemies/slime.png"
+    },
+    {
+      "spriteKey": "goblin",
+      "name": "Goblin",
+      "image": "source/images/enemies/goblin.png"
+    },
+    {
+      "spriteKey": "skeleton",
+      "name": "Skeleton",
+      "image": "source/images/enemies/skeleton.png"
+    },
+    {
+      "spriteKey": "bat",
+      "name": "Bat",
+      "image": "source/images/enemies/bat.png"
+    },
+    {
+      "spriteKey": "boss",
+      "name": "Boss",
+      "image": "source/images/enemies/boss.png"
+    }
+  ]
+}

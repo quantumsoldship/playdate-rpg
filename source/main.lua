@@ -8,7 +8,9 @@ import "CoreLibs/timer"
 
 -- Import game modules
 import "player"
+import "tileset"
 import "map"
+import "dungeon"
 import "enemy"
 import "combat"
 import "ui"
@@ -19,53 +21,187 @@ local gfx <const> = playdate.graphics
 local gameState = "explore" -- States: explore, combat, menu
 local player = nil
 local currentMap = nil
+local tileset = nil
+local dungeonGenerator = nil
+local currentDungeon = nil
+local currentRoom = nil
+local currentRoomEnemies = {}
+local roomCleared = false
 local enemies = {}
 local currentEnemy = nil
 local combatSystem = nil
 local ui = nil
-local roomNumber = 1  -- Track progression through rooms
+local floorNumber = 1  -- Track dungeon floor
+local debugMode = false  -- Toggle with SELECT button
 
 -- Initialize game
 function initialize()
     -- Set up graphics
     gfx.setBackgroundColor(gfx.kColorWhite)
     
+    -- Create tileset
+    tileset = Tileset()
+    tileset:createDefaultTileset()
+    
+    -- Try to load custom tileset if available
+    local customTilesetPath = "data/tileset.json"
+    if playdate.file.exists(customTilesetPath) then
+        print("Loading custom tileset...")
+        tileset:loadFromJSON(customTilesetPath)
+    end
+    
+    -- Load enemy sprites if available
+    local enemySpritesPath = "data/enemy_sprites.json"
+    if playdate.file.exists(enemySpritesPath) then
+        print("Loading custom enemy sprites...")
+        Enemy.loadSpritesFromJSON(enemySpritesPath)
+    end
+    
     -- Create player
     player = Player()
-    player:setPosition(3, 3)
     
-    -- Create map
-    currentMap = Map()
-    currentMap:generate(12, 10) -- 12x10 room-based map
+    -- Create dungeon generator
+    dungeonGenerator = DungeonGenerator()
+    
+    -- Generate first floor
+    generateNewFloor()
     
     -- Create UI
-    ui = UI(player, roomNumber)
-    
-    -- Spawn some enemies
-    spawnEnemies(2)
+    ui = UI(player, floorNumber)
     
     print("RPG Game Initialized!")
-    print("Use D-Pad to move, find the goal!")
+    print("Defeat all enemies to unlock doors!")
 end
 
--- Spawn enemies on the map
-function spawnEnemies(count)
-    enemies = {}
-    for i = 1, count do
-        local enemy = Enemy("Slime", 1)
-        -- Random position on map
-        local x = math.random(1, currentMap.width)
-        local y = math.random(1, currentMap.height)
-        
-        -- Make sure not to spawn on player
-        while (x == player.x and y == player.y) or not currentMap:isWalkable(x, y) do
-            x = math.random(1, currentMap.width)
-            y = math.random(1, currentMap.height)
+-- Generate a new dungeon floor
+function generateNewFloor()
+    print("Generating Floor " .. floorNumber .. "...")
+    
+    -- Generate dungeon
+    currentDungeon = dungeonGenerator:generate(6) -- 6 rooms per floor
+    
+    -- Start in first room
+    currentRoom = currentDungeon[1]
+    loadRoom(currentRoom)
+    
+    -- Place player at spawn point (center of room, in pixels)
+    local spawnX = currentRoom.width * 16 -- Center of room in pixels
+    local spawnY = currentRoom.height * 16
+    player:setPosition(spawnX, spawnY)
+end
+
+-- Load a room
+function loadRoom(room)
+    currentRoom = room
+    roomCleared = false
+    
+    -- Create map from room data
+    currentMap = Map(tileset)
+    currentMap.width = room.width
+    currentMap.height = room.height
+    currentMap.tiles = room.tiles
+    
+    -- Find goal position if this is exit room
+    if room.type == "exit" then
+        for y = 1, room.height do
+            for x = 1, room.width do
+                if room.tiles[y][x] == 5 then
+                    currentMap.goalX = x
+                    currentMap.goalY = y
+                end
+            end
         end
-        
-        enemy:setPosition(x, y)
-        table.insert(enemies, enemy)
     end
+    
+    -- Spawn enemies in room (if not already cleared)
+    if not room.cleared then
+        spawnEnemiesInRoom(room)
+    else
+        currentRoomEnemies = {}
+        roomCleared = true
+    end
+    
+    -- Update UI
+    ui.roomNumber = floorNumber
+end
+
+-- Spawn enemies in the current room
+function spawnEnemiesInRoom(room)
+    currentRoomEnemies = {}
+    
+    -- Don't spawn enemies in start room
+    if room.type == "start" then
+        roomCleared = true
+        return
+    end
+    
+    -- Spawn enemies based on room type and floor
+    local enemyCount = 2
+    if room.type == "large" then
+        enemyCount = 3
+    elseif room.type == "exit" then
+        enemyCount = 4 -- Boss room
+    end
+    
+    -- Scale with floor number
+    enemyCount = enemyCount + math.floor(floorNumber / 2)
+    
+    for i = 1, enemyCount do
+        local enemy = Enemy("Slime", floorNumber)
+        
+        -- Random pixel position in room (not on walls, not too close to player)
+        local x, y
+        local attempts = 0
+        repeat
+            x = math.random(3, room.width - 2) * 32
+            y = math.random(3, room.height - 2) * 32
+            attempts = attempts + 1
+        until (checkWalkablePixel(x, y) and 
+               math.abs(x - player.pixelX) + math.abs(y - player.pixelY) > 96) or
+              attempts > 50
+        
+        if attempts <= 50 then
+            enemy.pixelX = x
+            enemy.pixelY = y
+            enemy.x = math.floor(x / 32) + 1
+            enemy.y = math.floor(y / 32) + 1
+            table.insert(currentRoomEnemies, enemy)
+        end
+    end
+    
+    print("Spawned " .. #currentRoomEnemies .. " enemies in room")
+end
+
+-- Check if a pixel position is walkable
+function checkWalkablePixel(pixelX, pixelY)
+    local tileX = math.floor(pixelX / 32) + 1
+    local tileY = math.floor(pixelY / 32) + 1
+    return currentMap:isWalkable(tileX, tileY)
+end
+
+-- Check if room is cleared
+function checkRoomCleared()
+    if roomCleared then
+        return true
+    end
+    
+    -- Check if all enemies are defeated
+    local allDefeated = true
+    for _, enemy in ipairs(currentRoomEnemies) do
+        if enemy:isAlive() then
+            allDefeated = false
+            break
+        end
+    end
+    
+    if allDefeated then
+        roomCleared = true
+        currentRoom.cleared = true
+        print("Room cleared! Doors unlocked!")
+        return true
+    end
+    
+    return false
 end
 
 -- Update function called every frame
@@ -84,69 +220,213 @@ end
 
 -- Update during exploration
 function updateExplore()
-    -- Handle input
-    if playdate.buttonJustPressed(playdate.kButtonUp) then
-        tryMovePlayer(0, -1)
-    elseif playdate.buttonJustPressed(playdate.kButtonDown) then
-        tryMovePlayer(0, 1)
-    elseif playdate.buttonJustPressed(playdate.kButtonLeft) then
-        tryMovePlayer(-1, 0)
-    elseif playdate.buttonJustPressed(playdate.kButtonRight) then
-        tryMovePlayer(1, 0)
+    -- Handle smooth movement (continuous, not just on button press)
+    local dx, dy = 0, 0
+    
+    if playdate.buttonIsPressed(playdate.kButtonUp) then
+        dy = -player.speed
+    elseif playdate.buttonIsPressed(playdate.kButtonDown) then
+        dy = player.speed
+    end
+    
+    if playdate.buttonIsPressed(playdate.kButtonLeft) then
+        dx = -player.speed
+    elseif playdate.buttonIsPressed(playdate.kButtonRight) then
+        dx = player.speed
+    end
+    
+    -- Normalize diagonal movement
+    if dx ~= 0 and dy ~= 0 then
+        local factor = 0.707 -- 1/sqrt(2)
+        dx = dx * factor
+        dy = dy * factor
+    end
+    
+    -- Try to move
+    if dx ~= 0 or dy ~= 0 then
+        tryMovePlayerSmooth(dx, dy)
+    end
+    
+    -- Toggle debug mode with SELECT button
+    if playdate.buttonJustPressed(playdate.kButtonSelect) then
+        debugMode = not debugMode
+        print("Debug mode: " .. (debugMode and "ON" or "OFF"))
     end
 end
 
--- Try to move player
-function tryMovePlayer(dx, dy)
-    local newX = player.x + dx
-    local newY = player.y + dy
+-- Try to move player with smooth pixel-based movement
+function tryMovePlayerSmooth(dx, dy)
+    local newX = player.pixelX + dx
+    local newY = player.pixelY + dy
     
-    -- Check if goal tile
-    if currentMap:getTile(newX, newY) == currentMap.TILE_GOAL then
-        -- Advance to next room
-        advanceToNextRoom()
+    -- Check collision with walls and obstacles
+    if checkCollision(newX, newY) then
+        return -- Can't move, blocked
+    end
+    
+    -- Move player
+    player:movePixels(dx, dy)
+    
+    -- Check for door transitions
+    local doorTile = getTileAtPixel(player.pixelX, player.pixelY)
+    if doorTile == 9 then
+        if not roomCleared then
+            -- Can't use door yet
+            -- Push player back
+            player:movePixels(-dx, -dy)
+            return
+        else
+            -- Transition through door
+            transitionThroughDoorPixel()
+            return
+        end
+    end
+    
+    -- Check for goal
+    if doorTile == 5 then
+        if roomCleared then
+            advanceToNextFloor()
+        end
         return
     end
     
-    -- Check if walkable
-    if currentMap:isWalkable(newX, newY) then
-        player:move(dx, dy)
+    -- Check for enemy encounters (on same tile)
+    checkEnemyEncounter()
+end
+
+-- Check collision at pixel position
+function checkCollision(pixelX, pixelY)
+    local playerBounds = {
+        x = pixelX - player.size / 2,
+        y = pixelY - player.size / 2,
+        width = player.size,
+        height = player.size
+    }
+    
+    -- Check multiple points around player
+    local checkPoints = {
+        {x = playerBounds.x, y = playerBounds.y}, -- Top-left
+        {x = playerBounds.x + playerBounds.width, y = playerBounds.y}, -- Top-right
+        {x = playerBounds.x, y = playerBounds.y + playerBounds.height}, -- Bottom-left
+        {x = playerBounds.x + playerBounds.width, y = playerBounds.y + playerBounds.height}, -- Bottom-right
+        {x = pixelX, y = pixelY} -- Center
+    }
+    
+    for _, point in ipairs(checkPoints) do
+        local tileX = math.floor(point.x / 32) + 1
+        local tileY = math.floor(point.y / 32) + 1
         
-        -- Check for enemy encounter
-        for i, enemy in ipairs(enemies) do
-            if enemy.x == player.x and enemy.y == player.y and enemy:isAlive() then
+        if not currentMap:isWalkable(tileX, tileY) then
+            -- Check if it's a door (doors are walkable when room is cleared)
+            local tile = currentMap:getTile(tileX, tileY)
+            if tile == 9 and roomCleared then
+                -- Door is unlocked, allow passage
+            else
+                return true -- Collision detected
+            end
+        end
+    end
+    
+    return false -- No collision
+end
+
+-- Get tile at pixel position
+function getTileAtPixel(pixelX, pixelY)
+    local tileX = math.floor(pixelX / 32) + 1
+    local tileY = math.floor(pixelY / 32) + 1
+    return currentMap:getTile(tileX, tileY)
+end
+
+-- Check for enemy encounters
+function checkEnemyEncounter()
+    for i, enemy in ipairs(currentRoomEnemies) do
+        if enemy:isAlive() then
+            -- Check if player is close to enemy (within 20 pixels)
+            local dx = enemy.pixelX - player.pixelX
+            local dy = enemy.pixelY - player.pixelY
+            local distance = math.sqrt(dx * dx + dy * dy)
+            
+            if distance < 20 then
                 startCombat(enemy)
                 return
             end
         end
+    end
+end
+
+-- Transition through door (pixel-based)
+function transitionThroughDoorPixel()
+    -- Determine which wall we're closest to
+    local direction = nil
+    local roomWidth = currentRoom.width * 32
+    local roomHeight = currentRoom.height * 32
+    
+    -- Check distances to each wall
+    local distLeft = player.pixelX
+    local distRight = roomWidth - player.pixelX
+    local distTop = player.pixelY
+    local distBottom = roomHeight - player.pixelY
+    
+    local minDist = math.min(distLeft, distRight, distTop, distBottom)
+    
+    if minDist == distLeft then
+        direction = {dx = -1, dy = 0}
+    elseif minDist == distRight then
+        direction = {dx = 1, dy = 0}
+    elseif minDist == distTop then
+        direction = {dx = 0, dy = -1}
+    else
+        direction = {dx = 0, dy = 1}
+    end
+    
+    if direction then
+        -- Find connected room
+        local nextRoom = dungeonGenerator:getRoomAt(
+            currentRoom.gridX + direction.dx,
+            currentRoom.gridY + direction.dy
+        )
         
-        -- Random encounter chance (5%)
-        if math.random(100) <= 5 then
-            local encounter = Enemy("Wild " .. math.random(1, 5) .. " Slime", 1)
-            startCombat(encounter)
+        if nextRoom then
+            print("Entering new room...")
+            loadRoom(nextRoom)
+            
+            -- Place player at opposite door
+            if direction.dx == 1 then
+                player:setPosition(32, nextRoom.height * 16)
+            elseif direction.dx == -1 then
+                player:setPosition((nextRoom.width - 1) * 32, nextRoom.height * 16)
+            elseif direction.dy == 1 then
+                player:setPosition(nextRoom.width * 16, 32)
+            else
+                player:setPosition(nextRoom.width * 16, (nextRoom.height - 1) * 32)
+            end
         end
     end
 end
 
--- Advance to next room
-function advanceToNextRoom()
-    roomNumber = roomNumber + 1
-    print("Entering Room " .. roomNumber .. "!")
+-- Old tile-based movement function (kept for compatibility)
+function tryMovePlayer(dx, dy)
+    local newX = player.x + dx
+    local newY = player.y + dy
     
-    -- Generate new map
-    currentMap:generate(12, 10)
-    
-    -- Reset player position to start
-    player:setPosition(3, 3)
+    -- Convert to pixel movement
+    tryMovePlayerSmooth(dx * 32, dy * 32)
+end
+
+-- Transition through a door to another room
+-- Advance to next floor
+function advanceToNextFloor()
+    floorNumber = floorNumber + 1
+    print("Entering Floor " .. floorNumber .. "!")
     
     -- Heal player slightly as reward
     player:heal(10)
     
-    -- Spawn new enemies (scale with room number)
-    spawnEnemies(math.min(2 + math.floor(roomNumber / 3), 4))
+    -- Generate new floor
+    generateNewFloor()
     
-    -- Update UI with new room number
-    ui.roomNumber = roomNumber
+    -- Update UI with new floor number
+    ui.roomNumber = floorNumber
 end
 
 -- Start combat
@@ -168,13 +448,16 @@ function updateCombat()
                 print("Victory! Gained " .. combatSystem.rewardXP .. " XP")
                 player:gainXP(combatSystem.rewardXP)
                 
-                -- Remove defeated enemy from map
-                for i, enemy in ipairs(enemies) do
+                -- Remove defeated enemy from room
+                for i, enemy in ipairs(currentRoomEnemies) do
                     if enemy == currentEnemy then
-                        table.remove(enemies, i)
+                        table.remove(currentRoomEnemies, i)
                         break
                     end
                 end
+                
+                -- Check if room is cleared
+                checkRoomCleared()
                 
                 endCombat()
             elseif result == "continue" then
@@ -184,6 +467,7 @@ function updateCombat()
                     print("Game Over!")
                     -- Reset game
                     playdate.timer.performAfterDelay(2000, function()
+                        floorNumber = 1
                         initialize()
                     end)
                 end
@@ -214,12 +498,12 @@ function draw()
     
     if gameState == "explore" then
         -- Draw map
-        currentMap:draw(player.x, player.y)
+        currentMap:draw(player.pixelX, player.pixelY)
         
         -- Draw enemies
-        for _, enemy in ipairs(enemies) do
+        for _, enemy in ipairs(currentRoomEnemies) do
             if enemy:isAlive() then
-                enemy:draw(player.x, player.y, currentMap.tileSize)
+                enemy:draw(player.pixelX, player.pixelY, currentMap.tileSize)
             end
         end
         
@@ -229,25 +513,84 @@ function draw()
         -- Draw UI
         ui:draw()
         
+        -- Draw locked door indicators
+        if not roomCleared then
+            drawLockedDoorIndicators()
+        end
+        
         -- Check if player is near goal and show prompt
-        local distX = math.abs(player.x - currentMap.goalX)
-        local distY = math.abs(player.y - currentMap.goalY)
-        if distX <= 1 and distY <= 1 then
-            gfx.setColor(gfx.kColorBlack)
-            gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
-            local promptText = "→ GOAL"
-            local promptWidth = gfx.getTextSize(promptText)
-            local screenWidth = 400
-            local screenHeight = 240
-            gfx.fillRect((screenWidth - promptWidth) / 2 - 4, screenHeight - 50, promptWidth + 8, 20)
-            gfx.setColor(gfx.kColorWhite)
-            gfx.drawText(promptText, (screenWidth - promptWidth) / 2, screenHeight - 46)
+        if currentRoom and currentRoom.type == "exit" then
+            local goalPixelX = (currentMap.goalX - 1) * 32 + 16
+            local goalPixelY = (currentMap.goalY - 1) * 32 + 16
+            local distX = math.abs(player.pixelX - goalPixelX)
+            local distY = math.abs(player.pixelY - goalPixelY)
+            
+            if distX <= 32 and distY <= 32 then
+                gfx.setColor(gfx.kColorBlack)
+                gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
+                local promptText = roomCleared and "→ NEXT FLOOR" or "→ DEFEAT ENEMIES"
+                local promptWidth = gfx.getTextSize(promptText)
+                local screenWidth = 400
+                local screenHeight = 240
+                
+                -- Draw prompt with shadow and background
+                local promptX = (screenWidth - promptWidth) / 2
+                local promptY = screenHeight - 50
+                
+                -- Shadow
+                gfx.fillRect(promptX - 6, promptY - 6, promptWidth + 12, 24)
+                
+                -- Background
+                gfx.setColor(gfx.kColorWhite)
+                gfx.fillRect(promptX - 5, promptY - 5, promptWidth + 10, 22)
+                
+                -- Border
+                gfx.setColor(gfx.kColorBlack)
+                gfx.drawRect(promptX - 5, promptY - 5, promptWidth + 10, 22)
+                
+                -- Text
+                gfx.drawText(promptText, promptX, promptY - 2)
+            end
         end
         
     elseif gameState == "combat" then
         -- Draw combat screen
         if combatSystem then
             combatSystem:draw()
+        end
+    end
+end
+
+-- Draw locked door indicators
+function drawLockedDoorIndicators()
+    local gfx <const> = playdate.graphics
+    local screenWidth = 400
+    local screenHeight = 240
+    
+    -- Find door tiles in viewport
+    for y = 1, currentRoom.height do
+        for x = 1, currentRoom.width do
+            if currentMap:getTile(x, y) == 9 then
+                -- Calculate screen position (pixel-based)
+                local doorPixelX = (x - 1) * 32 + 16
+                local doorPixelY = (y - 1) * 32 + 16
+                
+                local offsetX = (screenWidth / 2) - player.pixelX
+                local offsetY = (screenHeight / 2) - player.pixelY
+                
+                local drawX = offsetX + doorPixelX
+                local drawY = offsetY + doorPixelY
+                
+                -- Draw lock icon if on screen
+                if drawX >= 0 and drawX < screenWidth and drawY >= 0 and drawY < screenHeight then
+                    gfx.setColor(gfx.kColorBlack)
+                    gfx.fillCircleAtPoint(drawX, drawY, 6)
+                    gfx.setColor(gfx.kColorWhite)
+                    gfx.fillCircleAtPoint(drawX, drawY, 4)
+                    gfx.setColor(gfx.kColorBlack)
+                    gfx.fillRect(drawX - 2, drawY, 4, 4)
+                end
+            end
         end
     end
 end
