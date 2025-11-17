@@ -138,7 +138,7 @@ function Enemy:draw(playerPixelX, playerPixelY, tileSize)
         -- Draw health bar above enemy
         local barWidth = 24
         local barHeight = 3
-        local healthPercent = self.currentHP / self.maxHP
+        local healthPercent = self.currentHP / math.max(1, self.maxHP)
         
         local barX = drawX - barWidth / 2
         local barY = drawY - 18

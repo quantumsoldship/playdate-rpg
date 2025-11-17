@@ -40,7 +40,7 @@ function UI:draw()
     local hpBarY = 10
     local hpBarWidth = 100
     local hpBarHeight = 12
-    local hpPercent = self.player.currentHP / self.player.maxHP
+    local hpPercent = self.player.currentHP / math.max(1, self.player.maxHP)
     
     -- HP bar background
     gfx.setColor(gfx.kColorBlack)
@@ -68,7 +68,7 @@ function UI:draw()
     local xpBarY = 10
     local xpBarWidth = 100
     local xpBarHeight = 12
-    local xpPercent = self.player.xp / self.player.xpToNextLevel
+    local xpPercent = self.player.xp / math.max(1, self.player.xpToNextLevel)
     
     -- XP bar background
     gfx.setColor(gfx.kColorBlack)
@@ -90,7 +90,7 @@ end
 function UI:drawMiniHealthBar(x, y, width)
     local gfx <const> = playdate.graphics
     local height = 6
-    local percent = self.player.currentHP / self.player.maxHP
+    local percent = self.player.currentHP / math.max(1, self.player.maxHP)
     
     gfx.setColor(gfx.kColorBlack)
     gfx.drawRect(x, y, width, height)

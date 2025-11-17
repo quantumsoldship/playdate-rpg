@@ -182,7 +182,7 @@ function Player:draw()
     -- Draw health bar above player
     local barWidth = 28
     local barHeight = 4
-    local healthPercent = self.currentHP / self.maxHP
+    local healthPercent = self.currentHP / math.max(1, self.maxHP)
     
     local barX = drawX - barWidth / 2
     local barY = drawY - 18
