@@ -26,6 +26,7 @@ local currentEnemy = nil
 local combatSystem = nil
 local ui = nil
 local roomNumber = 1  -- Track progression through rooms
+local debugMode = false  -- Toggle with SELECT button
 
 -- Initialize game
 function initialize()
@@ -106,6 +107,12 @@ function updateExplore()
         tryMovePlayer(-1, 0)
     elseif playdate.buttonJustPressed(playdate.kButtonRight) then
         tryMovePlayer(1, 0)
+    end
+    
+    -- Toggle debug mode with SELECT button
+    if playdate.buttonJustPressed(playdate.kButtonSelect) then
+        debugMode = not debugMode
+        print("Debug mode: " .. (debugMode and "ON" or "OFF"))
     end
 end
 
