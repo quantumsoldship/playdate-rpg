@@ -136,7 +136,7 @@ function Player:draw()
     
     -- Draw player as a simple character
     gfx.setColor(gfx.kColorBlack)
-    gfx.fillCircle(drawX + tileSize/2, drawY + tileSize/2, 6)
+    gfx.fillCircleAtPoint(drawX + tileSize/2, drawY + tileSize/2, 6)
     
     -- Draw health bar above player
     local barWidth = 20
