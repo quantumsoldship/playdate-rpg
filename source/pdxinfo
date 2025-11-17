@@ -1,0 +1,7 @@
+name=Basic RPG
+author=quantumsoldship
+description=A basic RPG game for Playdate that's easily expandable
+bundleID=com.quantumsoldship.basicrpg
+version=1.0.0
+buildNumber=1
+imagePath=icon
