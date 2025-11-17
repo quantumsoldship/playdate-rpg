@@ -1,0 +1,26 @@
+# Playdate build artifacts
+*.pdx
+*.pdx.zip
+
+# macOS
+.DS_Store
+._*
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Temporary files
+/tmp/
+*.tmp
+*.bak
+
+# Logs
+*.log
