@@ -23,6 +23,7 @@ local enemies = {}
 local currentEnemy = nil
 local combatSystem = nil
 local ui = nil
+local roomNumber = 1  -- Track progression through rooms
 
 -- Initialize game
 function initialize()
@@ -31,20 +32,20 @@ function initialize()
     
     -- Create player
     player = Player()
-    player:setPosition(5, 5)
+    player:setPosition(3, 3)
     
     -- Create map
     currentMap = Map()
-    currentMap:generate(20, 20) -- 20x20 tile map
+    currentMap:generate(12, 10) -- 12x10 room-based map
     
     -- Create UI
-    ui = UI(player)
+    ui = UI(player, roomNumber)
     
     -- Spawn some enemies
-    spawnEnemies(3)
+    spawnEnemies(2)
     
     print("RPG Game Initialized!")
-    print("Use D-Pad to move, A to interact")
+    print("Use D-Pad to move, find the goal!")
 end
 
 -- Spawn enemies on the map
@@ -100,6 +101,13 @@ function tryMovePlayer(dx, dy)
     local newX = player.x + dx
     local newY = player.y + dy
     
+    -- Check if goal tile
+    if currentMap:getTile(newX, newY) == currentMap.TILE_GOAL then
+        -- Advance to next room
+        advanceToNextRoom()
+        return
+    end
+    
     -- Check if walkable
     if currentMap:isWalkable(newX, newY) then
         player:move(dx, dy)
@@ -112,12 +120,33 @@ function tryMovePlayer(dx, dy)
             end
         end
         
-        -- Random encounter chance (10%)
-        if math.random(100) <= 10 then
+        -- Random encounter chance (5%)
+        if math.random(100) <= 5 then
             local encounter = Enemy("Wild " .. math.random(1, 5) .. " Slime", 1)
             startCombat(encounter)
         end
     end
+end
+
+-- Advance to next room
+function advanceToNextRoom()
+    roomNumber = roomNumber + 1
+    print("Entering Room " .. roomNumber .. "!")
+    
+    -- Generate new map
+    currentMap:generate(12, 10)
+    
+    -- Reset player position to start
+    player:setPosition(3, 3)
+    
+    -- Heal player slightly as reward
+    player:heal(10)
+    
+    -- Spawn new enemies (scale with room number)
+    spawnEnemies(math.min(2 + math.floor(roomNumber / 3), 4))
+    
+    -- Update UI with new room number
+    ui.roomNumber = roomNumber
 end
 
 -- Start combat
@@ -199,6 +228,21 @@ function draw()
         
         -- Draw UI
         ui:draw()
+        
+        -- Check if player is near goal and show prompt
+        local distX = math.abs(player.x - currentMap.goalX)
+        local distY = math.abs(player.y - currentMap.goalY)
+        if distX <= 1 and distY <= 1 then
+            gfx.setColor(gfx.kColorBlack)
+            gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
+            local promptText = "→ GOAL"
+            local promptWidth = gfx.getTextSize(promptText)
+            local screenWidth = 400
+            local screenHeight = 240
+            gfx.fillRect((screenWidth - promptWidth) / 2 - 4, screenHeight - 50, promptWidth + 8, 20)
+            gfx.setColor(gfx.kColorWhite)
+            gfx.drawText(promptText, (screenWidth - promptWidth) / 2, screenHeight - 46)
+        end
         
     elseif gameState == "combat" then
         -- Draw combat screen

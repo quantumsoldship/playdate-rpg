@@ -9,13 +9,13 @@ config.SCREEN_WIDTH = 400
 config.SCREEN_HEIGHT = 240
 
 -- Map Settings
-config.MAP_WIDTH = 20
-config.MAP_HEIGHT = 20
-config.TILE_SIZE = 16
+config.MAP_WIDTH = 12
+config.MAP_HEIGHT = 10
+config.TILE_SIZE = 32
 
 -- Enemy Settings
-config.INITIAL_ENEMY_COUNT = 3
-config.RANDOM_ENCOUNTER_CHANCE = 10  -- Percentage (0-100)
+config.INITIAL_ENEMY_COUNT = 2
+config.RANDOM_ENCOUNTER_CHANCE = 5  -- Percentage (0-100)
 
 -- Player Settings
 config.PLAYER_START_X = 5

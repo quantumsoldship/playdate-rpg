@@ -6,9 +6,10 @@ import "CoreLibs/graphics"
 
 class('UI').extends()
 
-function UI:init(player)
+function UI:init(player, roomNumber)
     UI.super.init(self)
     self.player = player
+    self.roomNumber = roomNumber or 1
 end
 
 -- Draw the HUD during exploration
@@ -17,32 +18,37 @@ function UI:draw()
     local screenWidth = 400
     local screenHeight = 240
     
-    -- Draw semi-transparent panel at top
+    -- Draw semi-transparent panel at top (cleaner design)
     gfx.setColor(gfx.kColorBlack)
-    gfx.fillRect(0, 0, screenWidth, 25)
+    gfx.fillRect(0, 0, screenWidth, 30)
     
     gfx.setColor(gfx.kColorWhite)
-    gfx.fillRect(2, 2, screenWidth - 4, 21)
+    gfx.fillRect(4, 4, screenWidth - 8, 22)
     
-    -- Draw player stats
+    -- Draw player stats (better aligned)
     gfx.setColor(gfx.kColorBlack)
     gfx.setFont(gfx.getSystemFont(gfx.font.kVariantNormal))
     
-    local statText = string.format(
-        "LVL:%d  HP:%d/%d  XP:%d/%d  POS:(%d,%d)",
+    -- Left side: Level and HP
+    local leftText = string.format("LV:%d  HP:%d/%d", 
         self.player.level,
         self.player.currentHP,
-        self.player.maxHP,
-        self.player.xp,
-        self.player.xpToNextLevel,
-        self.player.x,
-        self.player.y
+        self.player.maxHP
     )
+    gfx.drawText(leftText, 8, 10)
     
-    gfx.drawText(statText, 5, 7)
+    -- Center: Room number
+    local centerText = string.format("Room %d", self.roomNumber)
+    local centerTextWidth = gfx.getTextSize(centerText)
+    gfx.drawText(centerText, (screenWidth - centerTextWidth) / 2, 10)
     
-    -- Draw mini health bar in corner
-    self:drawMiniHealthBar(screenWidth - 62, 5, 60)
+    -- Right side: XP progress
+    local rightText = string.format("XP:%d/%d", 
+        self.player.xp,
+        self.player.xpToNextLevel
+    )
+    local rightTextWidth = gfx.getTextSize(rightText)
+    gfx.drawText(rightText, screenWidth - rightTextWidth - 8, 10)
 end
 
 -- Draw mini health bar
