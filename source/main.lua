@@ -8,6 +8,7 @@ import "CoreLibs/timer"
 
 -- Import game modules
 import "player"
+import "tileset"
 import "map"
 import "enemy"
 import "combat"
@@ -19,6 +20,7 @@ local gfx <const> = playdate.graphics
 local gameState = "explore" -- States: explore, combat, menu
 local player = nil
 local currentMap = nil
+local tileset = nil
 local enemies = {}
 local currentEnemy = nil
 local combatSystem = nil
@@ -30,12 +32,23 @@ function initialize()
     -- Set up graphics
     gfx.setBackgroundColor(gfx.kColorWhite)
     
+    -- Create tileset
+    tileset = Tileset()
+    tileset:createDefaultTileset()
+    
+    -- Try to load custom tileset if available
+    local customTilesetPath = "data/tileset.json"
+    if playdate.file.exists(customTilesetPath) then
+        print("Loading custom tileset...")
+        tileset:loadFromJSON(customTilesetPath)
+    end
+    
     -- Create player
     player = Player()
     player:setPosition(3, 3)
     
-    -- Create map
-    currentMap = Map()
+    -- Create map with tileset
+    currentMap = Map(tileset)
     currentMap:generate(12, 10) -- 12x10 room-based map
     
     -- Create UI
@@ -235,13 +248,28 @@ function draw()
         if distX <= 1 and distY <= 1 then
             gfx.setColor(gfx.kColorBlack)
             gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
-            local promptText = "→ GOAL"
+            local promptText = "→ ENTER GOAL"
             local promptWidth = gfx.getTextSize(promptText)
             local screenWidth = 400
             local screenHeight = 240
-            gfx.fillRect((screenWidth - promptWidth) / 2 - 4, screenHeight - 50, promptWidth + 8, 20)
+            
+            -- Draw prompt with shadow and background
+            local promptX = (screenWidth - promptWidth) / 2
+            local promptY = screenHeight - 50
+            
+            -- Shadow
+            gfx.fillRect(promptX - 6, promptY - 6, promptWidth + 12, 24)
+            
+            -- Background
             gfx.setColor(gfx.kColorWhite)
-            gfx.drawText(promptText, (screenWidth - promptWidth) / 2, screenHeight - 46)
+            gfx.fillRect(promptX - 5, promptY - 5, promptWidth + 10, 22)
+            
+            -- Border
+            gfx.setColor(gfx.kColorBlack)
+            gfx.drawRect(promptX - 5, promptY - 5, promptWidth + 10, 22)
+            
+            -- Text
+            gfx.drawText(promptText, promptX, promptY - 2)
         end
         
     elseif gameState == "combat" then

@@ -5,9 +5,11 @@ A basic, easily expandable RPG game for the [Playdate](https://play.date/) handh
 ## Features
 
 - **Turn-based combat system** with random encounters
-- **Tile-based exploration** with procedurally generated maps
+- **Advanced tile-based system** with custom tile support and hitboxes
 - **Character progression** - gain XP, level up, and increase stats
 - **Enemy system** with customizable templates
+- **Polished UI** with visual health/XP bars and improved layout
+- **Custom map support** - load your own maps and tilesets
 - **Clean, modular architecture** designed for easy expansion
 
 ## Quick Start
@@ -51,9 +53,14 @@ source/
 ├── player.lua     # Player character and stats
 ├── enemy.lua      # Enemy system
 ├── map.lua        # Map generation and rendering
+├── tileset.lua    # Tile management and custom tile support
 ├── combat.lua     # Combat system
 ├── ui.lua         # User interface
 └── pdxinfo        # Project metadata
+
+data/
+├── tileset_example.json  # Example tileset configuration
+└── map_example.json      # Example custom map
 ```
 
 ## What You Can Build
@@ -68,6 +75,7 @@ Starting from this foundation, you can create:
 
 ## Documentation
 
+- **[Tile System Guide](TILE_SYSTEM.md)** - Complete guide to creating custom tiles and maps
 - **[Developer Guide](DEVELOPER_GUIDE.md)** - Comprehensive guide to expanding the game
 - **[Playdate SDK Docs](https://sdk.play.date/)** - Official Playdate documentation
 

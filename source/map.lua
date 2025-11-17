@@ -3,18 +3,26 @@
 
 import "CoreLibs/object"
 import "CoreLibs/graphics"
+import "tileset"
 
 class('Map').extends()
 
-function Map:init()
+function Map:init(tileset)
     Map.super.init(self)
     
     self.width = 0
     self.height = 0
     self.tiles = {}
-    self.tileSize = 32
     
-    -- Tile types
+    -- Use provided tileset or create default one
+    self.tileset = tileset or Tileset()
+    if not tileset then
+        self.tileset:createDefaultTileset()
+    end
+    
+    self.tileSize = self.tileset.tileSize
+    
+    -- Tile types (for backward compatibility)
     self.TILE_GRASS = 0
     self.TILE_WATER = 1
     self.TILE_TREE = 2
@@ -83,6 +91,47 @@ function Map:generate(width, height)
     self.tiles[self.goalY][self.goalX] = self.TILE_GOAL
 end
 
+-- Load map from JSON file
+function Map:loadFromJSON(jsonPath)
+    local json = playdate.file.readJSON(jsonPath)
+    
+    if not json then
+        print("Error: Could not load map from " .. jsonPath)
+        return false
+    end
+    
+    self.width = json.width or 12
+    self.height = json.height or 10
+    
+    -- Load tiles
+    if json.tiles then
+        self.tiles = json.tiles
+    end
+    
+    -- Load goal position
+    if json.goal then
+        self.goalX = json.goal.x
+        self.goalY = json.goal.y
+    end
+    
+    return true
+end
+
+-- Export map to JSON
+function Map:exportToJSON(jsonPath)
+    local exportData = {
+        width = self.width,
+        height = self.height,
+        tiles = self.tiles,
+        goal = {
+            x = self.goalX,
+            y = self.goalY
+        }
+    }
+    
+    return playdate.file.writeJSON(jsonPath, exportData)
+end
+
 -- Check if a tile is walkable
 function Map:isWalkable(x, y)
     if x < 1 or x > self.width or y < 1 or y > self.height then
@@ -90,13 +139,7 @@ function Map:isWalkable(x, y)
     end
     
     local tile = self.tiles[y][x]
-    
-    -- Water, trees, rocks, and walls are not walkable
-    if tile == self.TILE_WATER or tile == self.TILE_TREE or tile == self.TILE_ROCK or tile == self.TILE_WALL then
-        return false
-    end
-    
-    return true
+    return self.tileset:isWalkable(tile)
 end
 
 -- Get tile at position
@@ -149,74 +192,5 @@ end
 
 -- Draw a single tile
 function Map:drawTile(tileType, x, y)
-    local gfx <const> = playdate.graphics
-    
-    if tileType == self.TILE_GRASS then
-        -- Draw grass (light pattern)
-        gfx.setColor(gfx.kColorWhite)
-        gfx.fillRect(x, y, self.tileSize, self.tileSize)
-        gfx.setColor(gfx.kColorBlack)
-        gfx.drawRect(x, y, self.tileSize, self.tileSize)
-        
-        -- Add some dots for texture
-        for i = 1, 3 do
-            local dx = math.random(2, self.tileSize - 2)
-            local dy = math.random(2, self.tileSize - 2)
-            gfx.fillRect(x + dx, y + dy, 1, 1)
-        end
-        
-    elseif tileType == self.TILE_WATER then
-        -- Draw water (dark with waves)
-        gfx.setColor(gfx.kColorBlack)
-        gfx.fillRect(x, y, self.tileSize, self.tileSize)
-        gfx.setColor(gfx.kColorWhite)
-        gfx.drawLine(x + 4, y + self.tileSize / 2, x + self.tileSize - 4, y + self.tileSize / 2)
-        gfx.drawLine(x + 4, y + self.tileSize / 2 + 4, x + self.tileSize - 4, y + self.tileSize / 2 + 4)
-        
-    elseif tileType == self.TILE_TREE then
-        -- Draw tree
-        gfx.setColor(gfx.kColorWhite)
-        gfx.fillRect(x, y, self.tileSize, self.tileSize)
-        gfx.setColor(gfx.kColorBlack)
-        gfx.drawRect(x, y, self.tileSize, self.tileSize)
-        gfx.fillCircleAtPoint(x + self.tileSize / 2, y + self.tileSize / 2, 8)
-        gfx.setColor(gfx.kColorWhite)
-        gfx.fillCircleAtPoint(x + self.tileSize / 2, y + self.tileSize / 2, 3)
-        
-    elseif tileType == self.TILE_ROCK then
-        -- Draw rock
-        gfx.setColor(gfx.kColorWhite)
-        gfx.fillRect(x, y, self.tileSize, self.tileSize)
-        gfx.setColor(gfx.kColorBlack)
-        gfx.drawRect(x, y, self.tileSize, self.tileSize)
-        gfx.fillRect(x + 8, y + 8, 16, 16)
-        
-    elseif tileType == self.TILE_WALL then
-        -- Draw wall (solid black)
-        gfx.setColor(gfx.kColorBlack)
-        gfx.fillRect(x, y, self.tileSize, self.tileSize)
-        gfx.setColor(gfx.kColorWhite)
-        gfx.drawRect(x + 2, y + 2, self.tileSize - 4, self.tileSize - 4)
-        
-    elseif tileType == self.TILE_GOAL then
-        -- Draw goal/door (distinctive pattern with star)
-        gfx.setColor(gfx.kColorWhite)
-        gfx.fillRect(x, y, self.tileSize, self.tileSize)
-        gfx.setColor(gfx.kColorBlack)
-        gfx.drawRect(x, y, self.tileSize, self.tileSize)
-        
-        -- Draw a star/diamond shape to indicate goal
-        local centerX = x + self.tileSize / 2
-        local centerY = y + self.tileSize / 2
-        gfx.fillTriangle(
-            centerX, centerY - 8,
-            centerX - 8, centerY,
-            centerX + 8, centerY
-        )
-        gfx.fillTriangle(
-            centerX, centerY + 8,
-            centerX - 8, centerY,
-            centerX + 8, centerY
-        )
-    end
+    self.tileset:drawTile(tileType, x, y)
 end

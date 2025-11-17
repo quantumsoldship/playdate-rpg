@@ -74,57 +74,99 @@ function Combat:draw()
     gfx.setColor(gfx.kColorWhite)
     gfx.fillRect(0, 0, screenWidth, screenHeight)
     
-    -- Draw border
+    -- Draw decorative border (triple line for more polish)
     gfx.setColor(gfx.kColorBlack)
+    gfx.drawRect(6, 6, screenWidth - 12, screenHeight - 12)
     gfx.drawRect(8, 8, screenWidth - 16, screenHeight - 16)
     gfx.drawRect(10, 10, screenWidth - 20, screenHeight - 20)
     
-    -- Draw title (centered)
+    -- Draw title banner with background
     gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
-    local titleText = "* COMBAT *"
+    local titleText = "⚔ COMBAT ⚔"
     local titleWidth = gfx.getTextSize(titleText)
-    gfx.drawText(titleText, (screenWidth - titleWidth) / 2, 20)
+    local titleX = (screenWidth - titleWidth) / 2
+    
+    -- Title background
+    gfx.fillRect(titleX - 10, 16, titleWidth + 20, 20)
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(titleX - 8, 18, titleWidth + 16, 16)
+    
+    gfx.setColor(gfx.kColorBlack)
+    gfx.drawText(titleText, titleX, 20)
     
     -- Draw player section (left side)
-    gfx.setFont(gfx.getSystemFont(gfx.font.kVariantNormal))
+    gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
     local leftX = 30
     gfx.drawText("YOU", leftX, 50)
+    
+    gfx.setFont(gfx.getSystemFont(gfx.font.kVariantNormal))
     gfx.drawText("HP: " .. self.player.currentHP .. "/" .. self.player.maxHP, leftX, 66)
     gfx.drawText("ATK: " .. self.player.attack, leftX, 82)
     gfx.drawText("DEF: " .. self.player.defense, leftX, 98)
     
-    -- Draw player sprite (aligned)
+    -- Draw player sprite with better design
+    gfx.setColor(gfx.kColorBlack)
     gfx.fillCircleAtPoint(leftX + 40, 135, 18)
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillCircleAtPoint(leftX + 40, 135, 14)
     
-    -- Draw enemy section (right side, aligned)
+    -- Add face
+    gfx.setColor(gfx.kColorBlack)
+    gfx.fillCircleAtPoint(leftX + 35, 132, 2)
+    gfx.fillCircleAtPoint(leftX + 45, 132, 2)
+    gfx.drawLine(leftX + 35, 140, leftX + 45, 140)
+    
+    -- Draw enemy section (right side)
     local rightX = screenWidth - 150
+    gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
     gfx.drawText(self.enemy.name, rightX, 50)
+    
+    gfx.setFont(gfx.getSystemFont(gfx.font.kVariantNormal))
     gfx.drawText("HP: " .. self.enemy.currentHP .. "/" .. self.enemy.maxHP, rightX, 66)
     gfx.drawText("LVL: " .. self.enemy.level, rightX, 82)
     
-    -- Draw enemy sprite (aligned)
+    -- Draw enemy sprite (improved)
+    gfx.setColor(gfx.kColorBlack)
     gfx.fillTriangle(
         rightX + 50, 110,
         rightX + 30, 150,
         rightX + 70, 150
     )
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillCircleAtPoint(rightX + 45, 130, 3)
+    gfx.fillCircleAtPoint(rightX + 55, 130, 3)
     
-    -- Draw health bars (properly aligned)
+    -- Draw health bars
     self:drawHealthBar(leftX, 120, 100, self.player.currentHP, self.player.maxHP)
     self:drawHealthBar(rightX, 120, 100, self.enemy.currentHP, self.enemy.maxHP)
     
-    -- Draw combat log (bottom section, well-aligned)
+    -- Draw combat log with better styling
+    gfx.setColor(gfx.kColorBlack)
+    gfx.fillRect(18, 163, screenWidth - 36, 54)
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(20, 165, screenWidth - 40, 50)
+    gfx.setColor(gfx.kColorBlack)
     gfx.drawRect(20, 165, screenWidth - 40, 50)
+    
+    gfx.setFont(gfx.getSystemFont(gfx.font.kVariantNormal))
     local logY = 170
     for i = math.max(1, #self.log - 3), #self.log do
         gfx.drawText(self.log[i], 25, logY)
         logY = logY + 12
     end
     
-    -- Draw controls (centered at bottom)
-    local controlText = "A: Attack  B: Run"
+    -- Draw controls banner
+    gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
+    local controlText = "Ⓐ Attack  Ⓑ Run"
     local controlWidth = gfx.getTextSize(controlText)
-    gfx.drawText(controlText, (screenWidth - controlWidth) / 2, screenHeight - 20)
+    local controlX = (screenWidth - controlWidth) / 2
+    
+    gfx.setColor(gfx.kColorBlack)
+    gfx.fillRect(controlX - 8, screenHeight - 24, controlWidth + 16, 18)
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(controlX - 6, screenHeight - 22, controlWidth + 12, 14)
+    gfx.setColor(gfx.kColorBlack)
+    gfx.drawText(controlText, controlX, screenHeight - 20)
 end
 
 -- Draw health bar

@@ -18,37 +18,72 @@ function UI:draw()
     local screenWidth = 400
     local screenHeight = 240
     
-    -- Draw semi-transparent panel at top (cleaner design)
+    -- Draw polished panel at top with shadow effect
     gfx.setColor(gfx.kColorBlack)
-    gfx.fillRect(0, 0, screenWidth, 30)
+    gfx.fillRect(0, 0, screenWidth, 34)
     
+    -- Inner panel with border
     gfx.setColor(gfx.kColorWhite)
-    gfx.fillRect(4, 4, screenWidth - 8, 22)
+    gfx.fillRect(2, 2, screenWidth - 4, 30)
+    gfx.setColor(gfx.kColorBlack)
+    gfx.drawRect(2, 2, screenWidth - 4, 30)
     
-    -- Draw player stats (better aligned)
+    -- Draw player stats with improved layout
+    gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
+    
+    -- Left side: Level
+    local levelText = string.format("LV %d", self.player.level)
+    gfx.drawText(levelText, 8, 10)
+    
+    -- HP bar (visual)
+    local hpBarX = 50
+    local hpBarY = 10
+    local hpBarWidth = 100
+    local hpBarHeight = 12
+    local hpPercent = self.player.currentHP / self.player.maxHP
+    
+    -- HP bar background
+    gfx.setColor(gfx.kColorBlack)
+    gfx.fillRect(hpBarX, hpBarY, hpBarWidth, hpBarHeight)
+    
+    -- HP bar fill (white for health)
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(hpBarX + 2, hpBarY + 2, (hpBarWidth - 4) * hpPercent, hpBarHeight - 4)
+    
+    -- HP text on bar
     gfx.setColor(gfx.kColorBlack)
     gfx.setFont(gfx.getSystemFont(gfx.font.kVariantNormal))
-    
-    -- Left side: Level and HP
-    local leftText = string.format("LV:%d  HP:%d/%d", 
-        self.player.level,
-        self.player.currentHP,
-        self.player.maxHP
-    )
-    gfx.drawText(leftText, 8, 10)
+    local hpText = string.format("%d/%d", self.player.currentHP, self.player.maxHP)
+    local hpTextWidth = gfx.getTextSize(hpText)
+    gfx.drawText(hpText, hpBarX + (hpBarWidth - hpTextWidth) / 2, hpBarY + 2)
     
     -- Center: Room number
-    local centerText = string.format("Room %d", self.roomNumber)
+    gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
+    local centerText = string.format("ROOM %d", self.roomNumber)
     local centerTextWidth = gfx.getTextSize(centerText)
     gfx.drawText(centerText, (screenWidth - centerTextWidth) / 2, 10)
     
-    -- Right side: XP progress
-    local rightText = string.format("XP:%d/%d", 
-        self.player.xp,
-        self.player.xpToNextLevel
-    )
-    local rightTextWidth = gfx.getTextSize(rightText)
-    gfx.drawText(rightText, screenWidth - rightTextWidth - 8, 10)
+    -- Right side: XP bar (visual)
+    local xpBarX = screenWidth - 110
+    local xpBarY = 10
+    local xpBarWidth = 100
+    local xpBarHeight = 12
+    local xpPercent = self.player.xp / self.player.xpToNextLevel
+    
+    -- XP bar background
+    gfx.setColor(gfx.kColorBlack)
+    gfx.fillRect(xpBarX, xpBarY, xpBarWidth, xpBarHeight)
+    
+    -- XP bar fill (black)
+    gfx.setColor(gfx.kColorBlack)
+    gfx.fillRect(xpBarX + 2, xpBarY + 2, (xpBarWidth - 4) * xpPercent, xpBarHeight - 4)
+    
+    -- XP text on bar
+    gfx.setColor(gfx.kColorWhite)
+    gfx.setFont(gfx.getSystemFont(gfx.font.kVariantNormal))
+    local xpText = string.format("XP %d/%d", self.player.xp, self.player.xpToNextLevel)
+    local xpTextWidth = gfx.getTextSize(xpText)
+    gfx.drawText(xpText, xpBarX + (xpBarWidth - xpTextWidth) / 2, xpBarY + 2)
 end
 
 -- Draw mini health bar

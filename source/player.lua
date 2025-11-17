@@ -134,19 +134,41 @@ function Player:draw()
     local drawX = screenWidth / 2 - tileSize / 2
     local drawY = screenHeight / 2 - tileSize / 2
     
-    -- Draw player as a simple character (larger for 32px tiles)
-    gfx.setColor(gfx.kColorBlack)
-    gfx.fillCircleAtPoint(drawX + tileSize/2, drawY + tileSize/2, 10)
+    -- Draw player as a more detailed character
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(drawX, drawY, tileSize, tileSize)
     
-    -- Draw health bar above player
+    -- Draw border
+    gfx.setColor(gfx.kColorBlack)
+    gfx.drawRect(drawX, drawY, tileSize, tileSize)
+    
+    -- Draw character (larger circle with border)
+    gfx.fillCircleAtPoint(drawX + tileSize/2, drawY + tileSize/2, 11)
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillCircleAtPoint(drawX + tileSize/2, drawY + tileSize/2, 9)
+    
+    -- Add eyes
+    gfx.setColor(gfx.kColorBlack)
+    gfx.fillCircleAtPoint(drawX + tileSize/2 - 3, drawY + tileSize/2 - 2, 2)
+    gfx.fillCircleAtPoint(drawX + tileSize/2 + 3, drawY + tileSize/2 - 2, 2)
+    
+    -- Add smile
+    gfx.drawLine(drawX + tileSize/2 - 4, drawY + tileSize/2 + 3, drawX + tileSize/2 + 4, drawY + tileSize/2 + 3)
+    
+    -- Draw health bar above player with better styling
     local barWidth = 28
-    local barHeight = 4
+    local barHeight = 5
     local healthPercent = self.currentHP / self.maxHP
     
+    -- Health bar shadow
     gfx.setColor(gfx.kColorBlack)
-    gfx.drawRect(drawX - 4, drawY - 10, barWidth + 4, barHeight + 2)
+    gfx.fillRect(drawX + 2, drawY - 9, barWidth, barHeight)
+    
+    -- Health bar background
     gfx.setColor(gfx.kColorWhite)
-    gfx.fillRect(drawX - 2, drawY - 8, barWidth, barHeight)
+    gfx.fillRect(drawX + 3, drawY - 8, barWidth - 2, barHeight - 2)
+    
+    -- Health bar fill (black for filled portion)
     gfx.setColor(gfx.kColorBlack)
-    gfx.fillRect(drawX - 2, drawY - 8, barWidth * healthPercent, barHeight)
+    gfx.fillRect(drawX + 3, drawY - 8, (barWidth - 2) * healthPercent, barHeight - 2)
 end
