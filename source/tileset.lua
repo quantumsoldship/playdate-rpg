@@ -230,6 +230,28 @@ function Tileset:createDefaultTileset()
             )
         end
     })
+    
+    -- Door (9) - for room transitions
+    self:defineTile(9, {
+        name = "Door",
+        walkable = true,
+        category = "special",
+        drawFunc = function(x, y, size)
+            gfx.setColor(gfx.kColorWhite)
+            gfx.fillRect(x, y, size, size)
+            gfx.setColor(gfx.kColorBlack)
+            gfx.drawRect(x, y, size, size)
+            
+            -- Draw door frame
+            gfx.fillRect(x + 8, y, 16, size)
+            gfx.setColor(gfx.kColorWhite)
+            gfx.fillRect(x + 10, y + 4, 12, size - 8)
+            
+            -- Door handle
+            gfx.setColor(gfx.kColorBlack)
+            gfx.fillCircleAtPoint(x + 18, y + size / 2, 2)
+        end
+    })
 end
 
 -- Get all tiles in a category

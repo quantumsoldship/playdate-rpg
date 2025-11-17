@@ -2,15 +2,20 @@
 -- Manages enemy stats, AI, and behavior
 
 import "CoreLibs/object"
+import "CoreLibs/graphics"
 
 class('Enemy').extends()
 
-function Enemy:init(name, level)
+-- Static sprite registry
+Enemy.sprites = {}
+
+function Enemy:init(name, level, spriteKey)
     Enemy.super.init(self)
     
     -- Basic info
     self.name = name or "Enemy"
     self.level = level or 1
+    self.spriteKey = spriteKey -- Key to look up custom sprite
     
     -- Position
     self.x = 0
@@ -25,6 +30,39 @@ function Enemy:init(name, level)
     -- Rewards
     self.xpReward = 20 * level
     self.goldReward = 5 * level
+end
+
+-- Load a sprite for an enemy type
+function Enemy.loadSprite(spriteKey, imagePath)
+    local gfx <const> = playdate.graphics
+    local image = gfx.image.new(imagePath)
+    
+    if image then
+        Enemy.sprites[spriteKey] = image
+        print("Loaded enemy sprite: " .. spriteKey)
+        return true
+    else
+        print("Failed to load enemy sprite: " .. imagePath)
+        return false
+    end
+end
+
+-- Load all enemy sprites from a JSON configuration
+function Enemy.loadSpritesFromJSON(jsonPath)
+    local json = playdate.file.readJSON(jsonPath)
+    
+    if not json or not json.enemies then
+        print("Error: Could not load enemy sprites from " .. jsonPath)
+        return false
+    end
+    
+    for _, enemyData in ipairs(json.enemies) do
+        if enemyData.spriteKey and enemyData.image then
+            Enemy.loadSprite(enemyData.spriteKey, enemyData.image)
+        end
+    end
+    
+    return true
 end
 
 -- Set enemy position
@@ -77,19 +115,39 @@ function Enemy:draw(playerX, playerY, tileSize)
     if drawX >= -tileSize and drawX <= screenWidth and 
        drawY >= -tileSize and drawY <= screenHeight then
         
-        -- Draw enemy as a larger triangle (scaled for 32px tiles)
+        -- Check if we have a custom sprite
+        local sprite = self.spriteKey and Enemy.sprites[self.spriteKey]
+        
+        if sprite then
+            -- Draw custom sprite
+            sprite:draw(drawX, drawY)
+        else
+            -- Draw default enemy triangle
+            gfx.setColor(gfx.kColorBlack)
+            gfx.fillTriangle(
+                drawX + tileSize/2, drawY + 4,
+                drawX + 4, drawY + tileSize - 4,
+                drawX + tileSize - 4, drawY + tileSize - 4
+            )
+        end
+        
+        -- Draw health bar
+        local barWidth = 24
+        local barHeight = 3
+        local healthPercent = self.currentHP / self.maxHP
+        
         gfx.setColor(gfx.kColorBlack)
-        gfx.fillTriangle(
-            drawX + tileSize/2, drawY + 4,
-            drawX + 4, drawY + tileSize - 4,
-            drawX + tileSize - 4, drawY + tileSize - 4
-        )
+        gfx.drawRect(drawX + 4, drawY - 5, barWidth, barHeight)
+        gfx.setColor(gfx.kColorWhite)
+        gfx.fillRect(drawX + 5, drawY - 4, barWidth - 2, barHeight - 2)
+        gfx.setColor(gfx.kColorBlack)
+        gfx.fillRect(drawX + 5, drawY - 4, (barWidth - 2) * healthPercent, barHeight - 2)
     end
 end
 
 -- Create enemy from template (for easy expansion)
 function Enemy.fromTemplate(template)
-    local enemy = Enemy(template.name, template.level)
+    local enemy = Enemy(template.name, template.level, template.spriteKey)
     
     if template.maxHP then enemy.maxHP = template.maxHP end
     if template.attack then enemy.attack = template.attack end

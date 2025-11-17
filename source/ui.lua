@@ -57,9 +57,9 @@ function UI:draw()
     local hpTextWidth = gfx.getTextSize(hpText)
     gfx.drawText(hpText, hpBarX + (hpBarWidth - hpTextWidth) / 2, hpBarY + 2)
     
-    -- Center: Room number
+    -- Center: Floor number
     gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
-    local centerText = string.format("ROOM %d", self.roomNumber)
+    local centerText = string.format("FLOOR %d", self.roomNumber)
     local centerTextWidth = gfx.getTextSize(centerText)
     gfx.drawText(centerText, (screenWidth - centerTextWidth) / 2, 10)
     
