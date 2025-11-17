@@ -77,12 +77,12 @@ function Enemy:draw(playerX, playerY, tileSize)
     if drawX >= -tileSize and drawX <= screenWidth and 
        drawY >= -tileSize and drawY <= screenHeight then
         
-        -- Draw enemy as a triangle
+        -- Draw enemy as a larger triangle (scaled for 32px tiles)
         gfx.setColor(gfx.kColorBlack)
         gfx.fillTriangle(
-            drawX + tileSize/2, drawY + 2,
-            drawX + 2, drawY + tileSize - 2,
-            drawX + tileSize - 2, drawY + tileSize - 2
+            drawX + tileSize/2, drawY + 4,
+            drawX + 4, drawY + tileSize - 4,
+            drawX + tileSize - 4, drawY + tileSize - 4
         )
     end
 end

@@ -31,17 +31,17 @@ function initialize()
     
     -- Create player
     player = Player()
-    player:setPosition(5, 5)
+    player:setPosition(3, 3)
     
     -- Create map
     currentMap = Map()
-    currentMap:generate(20, 20) -- 20x20 tile map
+    currentMap:generate(12, 10) -- 12x10 room-based map
     
     -- Create UI
     ui = UI(player)
     
     -- Spawn some enemies
-    spawnEnemies(3)
+    spawnEnemies(2)
     
     print("RPG Game Initialized!")
     print("Use D-Pad to move, A to interact")
@@ -112,8 +112,8 @@ function tryMovePlayer(dx, dy)
             end
         end
         
-        -- Random encounter chance (10%)
-        if math.random(100) <= 10 then
+        -- Random encounter chance (5%)
+        if math.random(100) <= 5 then
             local encounter = Enemy("Wild " .. math.random(1, 5) .. " Slime", 1)
             startCombat(encounter)
         end

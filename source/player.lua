@@ -129,24 +129,24 @@ function Player:draw()
     local gfx <const> = playdate.graphics
     local screenWidth = 400
     local screenHeight = 240
-    local tileSize = 16
+    local tileSize = 32
     
     local drawX = screenWidth / 2 - tileSize / 2
     local drawY = screenHeight / 2 - tileSize / 2
     
-    -- Draw player as a simple character
+    -- Draw player as a simple character (larger for 32px tiles)
     gfx.setColor(gfx.kColorBlack)
-    gfx.fillCircleAtPoint(drawX + tileSize/2, drawY + tileSize/2, 6)
+    gfx.fillCircleAtPoint(drawX + tileSize/2, drawY + tileSize/2, 10)
     
     -- Draw health bar above player
-    local barWidth = 20
-    local barHeight = 3
+    local barWidth = 28
+    local barHeight = 4
     local healthPercent = self.currentHP / self.maxHP
     
     gfx.setColor(gfx.kColorBlack)
-    gfx.drawRect(drawX - 2, drawY - 8, barWidth + 4, barHeight + 2)
+    gfx.drawRect(drawX - 4, drawY - 10, barWidth + 4, barHeight + 2)
     gfx.setColor(gfx.kColorWhite)
-    gfx.fillRect(drawX, drawY - 6, barWidth, barHeight)
+    gfx.fillRect(drawX - 2, drawY - 8, barWidth, barHeight)
     gfx.setColor(gfx.kColorBlack)
-    gfx.fillRect(drawX, drawY - 6, barWidth * healthPercent, barHeight)
+    gfx.fillRect(drawX - 2, drawY - 8, barWidth * healthPercent, barHeight)
 end

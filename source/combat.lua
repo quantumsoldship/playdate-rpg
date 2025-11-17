@@ -76,65 +76,73 @@ function Combat:draw()
     
     -- Draw border
     gfx.setColor(gfx.kColorBlack)
-    gfx.drawRect(5, 5, screenWidth - 10, screenHeight - 10)
+    gfx.drawRect(8, 8, screenWidth - 16, screenHeight - 16)
+    gfx.drawRect(10, 10, screenWidth - 20, screenHeight - 20)
     
-    -- Draw title
+    -- Draw title (centered)
     gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
-    gfx.drawText("*COMBAT*", screenWidth / 2 - 40, 15)
+    local titleText = "* COMBAT *"
+    local titleWidth = gfx.getTextSize(titleText)
+    gfx.drawText(titleText, (screenWidth - titleWidth) / 2, 20)
     
-    -- Draw player info
+    -- Draw player section (left side)
     gfx.setFont(gfx.getSystemFont(gfx.font.kVariantNormal))
-    gfx.drawText("YOU", 20, 40)
-    gfx.drawText("HP: " .. self.player.currentHP .. "/" .. self.player.maxHP, 20, 55)
-    gfx.drawText("ATK: " .. self.player.attack, 20, 70)
-    gfx.drawText("DEF: " .. self.player.defense, 20, 85)
+    local leftX = 30
+    gfx.drawText("YOU", leftX, 50)
+    gfx.drawText("HP: " .. self.player.currentHP .. "/" .. self.player.maxHP, leftX, 66)
+    gfx.drawText("ATK: " .. self.player.attack, leftX, 82)
+    gfx.drawText("DEF: " .. self.player.defense, leftX, 98)
     
-    -- Draw player sprite
-    gfx.fillCircleAtPoint(70, 110, 15)
+    -- Draw player sprite (aligned)
+    gfx.fillCircleAtPoint(leftX + 40, 135, 18)
     
-    -- Draw enemy info
-    gfx.drawText(self.enemy.name, screenWidth - 120, 40)
-    gfx.drawText("HP: " .. self.enemy.currentHP .. "/" .. self.enemy.maxHP, screenWidth - 120, 55)
-    gfx.drawText("LVL: " .. self.enemy.level, screenWidth - 120, 70)
+    -- Draw enemy section (right side, aligned)
+    local rightX = screenWidth - 150
+    gfx.drawText(self.enemy.name, rightX, 50)
+    gfx.drawText("HP: " .. self.enemy.currentHP .. "/" .. self.enemy.maxHP, rightX, 66)
+    gfx.drawText("LVL: " .. self.enemy.level, rightX, 82)
     
-    -- Draw enemy sprite
+    -- Draw enemy sprite (aligned)
     gfx.fillTriangle(
-        screenWidth - 70, 95,
-        screenWidth - 90, 125,
-        screenWidth - 50, 125
+        rightX + 50, 110,
+        rightX + 30, 150,
+        rightX + 70, 150
     )
     
-    -- Draw health bars
-    self:drawHealthBar(20, 100, 80, self.player.currentHP, self.player.maxHP)
-    self:drawHealthBar(screenWidth - 120, 100, 80, self.enemy.currentHP, self.enemy.maxHP)
+    -- Draw health bars (properly aligned)
+    self:drawHealthBar(leftX, 120, 100, self.player.currentHP, self.player.maxHP)
+    self:drawHealthBar(rightX, 120, 100, self.enemy.currentHP, self.enemy.maxHP)
     
-    -- Draw combat log
-    gfx.drawRect(10, 140, screenWidth - 20, 70)
-    local y = 145
-    for i = math.max(1, #self.log - 5), #self.log do
-        gfx.drawText(self.log[i], 15, y)
-        y = y + 12
+    -- Draw combat log (bottom section, well-aligned)
+    gfx.drawRect(20, 165, screenWidth - 40, 50)
+    local logY = 170
+    for i = math.max(1, #self.log - 3), #self.log do
+        gfx.drawText(self.log[i], 25, logY)
+        logY = logY + 12
     end
     
-    -- Draw controls
-    gfx.drawText("A: Attack  B: Run", screenWidth / 2 - 70, screenHeight - 20)
+    -- Draw controls (centered at bottom)
+    local controlText = "A: Attack  B: Run"
+    local controlWidth = gfx.getTextSize(controlText)
+    gfx.drawText(controlText, (screenWidth - controlWidth) / 2, screenHeight - 20)
 end
 
 -- Draw health bar
 function Combat:drawHealthBar(x, y, width, current, max)
     local gfx <const> = playdate.graphics
-    local height = 8
-    local percent = current / max
+    local height = 10
+    local percent = math.max(0, math.min(1, current / max))
     
-    -- Border
+    -- Border (double line for better visibility)
     gfx.setColor(gfx.kColorBlack)
     gfx.drawRect(x, y, width, height)
+    gfx.drawRect(x + 1, y + 1, width - 2, height - 2)
     
     -- Background
     gfx.setColor(gfx.kColorWhite)
-    gfx.fillRect(x + 1, y + 1, width - 2, height - 2)
+    gfx.fillRect(x + 2, y + 2, width - 4, height - 4)
     
-    -- Health
+    -- Health (filled portion)
     gfx.setColor(gfx.kColorBlack)
-    gfx.fillRect(x + 1, y + 1, (width - 2) * percent, height - 2)
+    gfx.fillRect(x + 2, y + 2, (width - 4) * percent, height - 4)
 end
