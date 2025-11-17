@@ -8,9 +8,15 @@ class('Player').extends()
 function Player:init()
     Player.super.init(self)
     
-    -- Position
+    -- Position (pixel-based, not tile-based)
     self.x = 0
     self.y = 0
+    self.pixelX = 0  -- Actual pixel position
+    self.pixelY = 0
+    
+    -- Movement
+    self.speed = 2  -- Pixels per frame
+    self.size = 16  -- Player collision size
     
     -- Stats
     self.level = 1
@@ -30,16 +36,41 @@ function Player:init()
     self.armor = nil
 end
 
--- Set player position
+-- Set player position (in pixels)
 function Player:setPosition(x, y)
-    self.x = x
-    self.y = y
+    self.pixelX = x
+    self.pixelY = y
+    -- Update tile position for compatibility
+    self.x = math.floor(x / 32) + 1
+    self.y = math.floor(y / 32) + 1
 end
 
--- Move player
-function Player:move(dx, dy)
-    self.x = self.x + dx
-    self.y = self.y + dy
+-- Set player tile position (converts to pixels)
+function Player:setTilePosition(tileX, tileY)
+    self.x = tileX
+    self.y = tileY
+    self.pixelX = (tileX - 1) * 32 + 16
+    self.pixelY = (tileY - 1) * 32 + 16
+end
+
+-- Move player (pixel-based)
+function Player:movePixels(dx, dy)
+    self.pixelX = self.pixelX + dx
+    self.pixelY = self.pixelY + dy
+    
+    -- Update tile position
+    self.x = math.floor(self.pixelX / 32) + 1
+    self.y = math.floor(self.pixelY / 32) + 1
+end
+
+-- Get collision bounds
+function Player:getBounds()
+    return {
+        x = self.pixelX - self.size / 2,
+        y = self.pixelY - self.size / 2,
+        width = self.size,
+        height = self.size
+    }
 end
 
 -- Take damage
@@ -129,46 +160,42 @@ function Player:draw()
     local gfx <const> = playdate.graphics
     local screenWidth = 400
     local screenHeight = 240
-    local tileSize = 32
     
-    local drawX = screenWidth / 2 - tileSize / 2
-    local drawY = screenHeight / 2 - tileSize / 2
+    -- Draw at screen center
+    local drawX = screenWidth / 2
+    local drawY = screenHeight / 2
     
-    -- Draw player as a more detailed character
-    gfx.setColor(gfx.kColorWhite)
-    gfx.fillRect(drawX, drawY, tileSize, tileSize)
-    
-    -- Draw border
+    -- Draw character (circle with border)
     gfx.setColor(gfx.kColorBlack)
-    gfx.drawRect(drawX, drawY, tileSize, tileSize)
-    
-    -- Draw character (larger circle with border)
-    gfx.fillCircleAtPoint(drawX + tileSize/2, drawY + tileSize/2, 11)
+    gfx.fillCircleAtPoint(drawX, drawY, 11)
     gfx.setColor(gfx.kColorWhite)
-    gfx.fillCircleAtPoint(drawX + tileSize/2, drawY + tileSize/2, 9)
+    gfx.fillCircleAtPoint(drawX, drawY, 9)
     
     -- Add eyes
     gfx.setColor(gfx.kColorBlack)
-    gfx.fillCircleAtPoint(drawX + tileSize/2 - 3, drawY + tileSize/2 - 2, 2)
-    gfx.fillCircleAtPoint(drawX + tileSize/2 + 3, drawY + tileSize/2 - 2, 2)
+    gfx.fillCircleAtPoint(drawX - 3, drawY - 2, 2)
+    gfx.fillCircleAtPoint(drawX + 3, drawY - 2, 2)
     
     -- Add smile
-    gfx.drawLine(drawX + tileSize/2 - 4, drawY + tileSize/2 + 3, drawX + tileSize/2 + 4, drawY + tileSize/2 + 3)
+    gfx.drawLine(drawX - 4, drawY + 3, drawX + 4, drawY + 3)
     
-    -- Draw health bar above player with better styling
+    -- Draw health bar above player
     local barWidth = 28
-    local barHeight = 5
+    local barHeight = 4
     local healthPercent = self.currentHP / self.maxHP
+    
+    local barX = drawX - barWidth / 2
+    local barY = drawY - 18
     
     -- Health bar shadow
     gfx.setColor(gfx.kColorBlack)
-    gfx.fillRect(drawX + 2, drawY - 9, barWidth, barHeight)
+    gfx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2)
     
     -- Health bar background
     gfx.setColor(gfx.kColorWhite)
-    gfx.fillRect(drawX + 3, drawY - 8, barWidth - 2, barHeight - 2)
+    gfx.fillRect(barX, barY, barWidth, barHeight)
     
     -- Health bar fill (black for filled portion)
     gfx.setColor(gfx.kColorBlack)
-    gfx.fillRect(drawX + 3, drawY - 8, (barWidth - 2) * healthPercent, barHeight - 2)
+    gfx.fillRect(barX, barY, barWidth * healthPercent, barHeight)
 end

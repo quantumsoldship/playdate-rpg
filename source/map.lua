@@ -157,8 +157,8 @@ function Map:setTile(x, y, tileType)
     end
 end
 
--- Draw the map centered on player
-function Map:draw(playerX, playerY)
+-- Draw the map centered on player (pixel-based)
+function Map:draw(playerPixelX, playerPixelY)
     local gfx <const> = playdate.graphics
     local screenWidth = 400
     local screenHeight = 240
@@ -167,17 +167,17 @@ function Map:draw(playerX, playerY)
     local tilesWide = math.ceil(screenWidth / self.tileSize) + 2
     local tilesHigh = math.ceil(screenHeight / self.tileSize) + 2
     
-    local startX = playerX - math.floor(tilesWide / 2)
-    local startY = playerY - math.floor(tilesHigh / 2)
+    local startTileX = math.floor((playerPixelX - screenWidth / 2) / self.tileSize)
+    local startTileY = math.floor((playerPixelY - screenHeight / 2) / self.tileSize)
     
-    local offsetX = (screenWidth / 2) - (playerX * self.tileSize) + (self.tileSize / 2)
-    local offsetY = (screenHeight / 2) - (playerY * self.tileSize) + (self.tileSize / 2)
+    local offsetX = (screenWidth / 2) - playerPixelX
+    local offsetY = (screenHeight / 2) - playerPixelY
     
     -- Draw tiles
     for ty = 0, tilesHigh do
         for tx = 0, tilesWide do
-            local mapX = startX + tx
-            local mapY = startY + ty
+            local mapX = startTileX + tx + 1
+            local mapY = startTileY + ty + 1
             
             if mapX >= 1 and mapX <= self.width and mapY >= 1 and mapY <= self.height then
                 local tile = self.tiles[mapY][mapX]

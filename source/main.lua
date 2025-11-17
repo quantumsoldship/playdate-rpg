@@ -84,8 +84,10 @@ function generateNewFloor()
     currentRoom = currentDungeon[1]
     loadRoom(currentRoom)
     
-    -- Place player at spawn point
-    player:setPosition(math.floor(currentRoom.width / 2), math.floor(currentRoom.height / 2))
+    -- Place player at spawn point (center of room, in pixels)
+    local spawnX = currentRoom.width * 16 -- Center of room in pixels
+    local spawnY = currentRoom.height * 16
+    player:setPosition(spawnX, spawnY)
 end
 
 -- Load a room
@@ -147,25 +149,34 @@ function spawnEnemiesInRoom(room)
     for i = 1, enemyCount do
         local enemy = Enemy("Slime", floorNumber)
         
-        -- Random position in room (not on player, not on walls)
+        -- Random pixel position in room (not on walls, not too close to player)
         local x, y
         local attempts = 0
         repeat
-            x = math.random(3, room.width - 2)
-            y = math.random(3, room.height - 2)
+            x = math.random(3, room.width - 2) * 32
+            y = math.random(3, room.height - 2) * 32
             attempts = attempts + 1
-        until (currentMap:isWalkable(x, y) and 
-               (x ~= player.x or y ~= player.y) and
-               math.abs(x - player.x) + math.abs(y - player.y) > 3) or
+        until (checkWalkablePixel(x, y) and 
+               math.abs(x - player.pixelX) + math.abs(y - player.pixelY) > 96) or
               attempts > 50
         
         if attempts <= 50 then
-            enemy:setPosition(x, y)
+            enemy.pixelX = x
+            enemy.pixelY = y
+            enemy.x = math.floor(x / 32) + 1
+            enemy.y = math.floor(y / 32) + 1
             table.insert(currentRoomEnemies, enemy)
         end
     end
     
     print("Spawned " .. #currentRoomEnemies .. " enemies in room")
+end
+
+-- Check if a pixel position is walkable
+function checkWalkablePixel(pixelX, pixelY)
+    local tileX = math.floor(pixelX / 32) + 1
+    local tileY = math.floor(pixelY / 32) + 1
+    return currentMap:isWalkable(tileX, tileY)
 end
 
 -- Check if room is cleared
@@ -209,15 +220,31 @@ end
 
 -- Update during exploration
 function updateExplore()
-    -- Handle input
-    if playdate.buttonJustPressed(playdate.kButtonUp) then
-        tryMovePlayer(0, -1)
-    elseif playdate.buttonJustPressed(playdate.kButtonDown) then
-        tryMovePlayer(0, 1)
-    elseif playdate.buttonJustPressed(playdate.kButtonLeft) then
-        tryMovePlayer(-1, 0)
-    elseif playdate.buttonJustPressed(playdate.kButtonRight) then
-        tryMovePlayer(1, 0)
+    -- Handle smooth movement (continuous, not just on button press)
+    local dx, dy = 0, 0
+    
+    if playdate.buttonIsPressed(playdate.kButtonUp) then
+        dy = -player.speed
+    elseif playdate.buttonIsPressed(playdate.kButtonDown) then
+        dy = player.speed
+    end
+    
+    if playdate.buttonIsPressed(playdate.kButtonLeft) then
+        dx = -player.speed
+    elseif playdate.buttonIsPressed(playdate.kButtonRight) then
+        dx = player.speed
+    end
+    
+    -- Normalize diagonal movement
+    if dx ~= 0 and dy ~= 0 then
+        local factor = 0.707 -- 1/sqrt(2)
+        dx = dx * factor
+        dy = dy * factor
+    end
+    
+    -- Try to move
+    if dx ~= 0 or dy ~= 0 then
+        tryMovePlayerSmooth(dx, dy)
     end
     
     -- Toggle debug mode with SELECT button
@@ -227,41 +254,99 @@ function updateExplore()
     end
 end
 
--- Try to move player
-function tryMovePlayer(dx, dy)
-    local newX = player.x + dx
-    local newY = player.y + dy
+-- Try to move player with smooth pixel-based movement
+function tryMovePlayerSmooth(dx, dy)
+    local newX = player.pixelX + dx
+    local newY = player.pixelY + dy
     
-    -- Check if it's a door tile
-    if currentMap:getTile(newX, newY) == 9 then
-        -- Check if room is cleared
+    -- Check collision with walls and obstacles
+    if checkCollision(newX, newY) then
+        return -- Can't move, blocked
+    end
+    
+    -- Move player
+    player:movePixels(dx, dy)
+    
+    -- Check for door transitions
+    local doorTile = getTileAtPixel(player.pixelX, player.pixelY)
+    if doorTile == 9 then
         if not roomCleared then
-            print("Defeat all enemies to unlock the door!")
+            -- Can't use door yet
+            -- Push player back
+            player:movePixels(-dx, -dy)
+            return
+        else
+            -- Transition through door
+            transitionThroughDoorPixel()
             return
         end
-        
-        -- Find which door this is and transition to connected room
-        transitionThroughDoor(newX, newY)
-        return
     end
     
-    -- Check if goal tile (floor exit)
-    if currentMap:getTile(newX, newY) == 5 then
+    -- Check for goal
+    if doorTile == 5 then
         if roomCleared then
             advanceToNextFloor()
-        else
-            print("Defeat all enemies first!")
         end
         return
     end
     
-    -- Check if walkable
-    if currentMap:isWalkable(newX, newY) then
-        player:move(dx, dy)
+    -- Check for enemy encounters (on same tile)
+    checkEnemyEncounter()
+end
+
+-- Check collision at pixel position
+function checkCollision(pixelX, pixelY)
+    local playerBounds = {
+        x = pixelX - player.size / 2,
+        y = pixelY - player.size / 2,
+        width = player.size,
+        height = player.size
+    }
+    
+    -- Check multiple points around player
+    local checkPoints = {
+        {x = playerBounds.x, y = playerBounds.y}, -- Top-left
+        {x = playerBounds.x + playerBounds.width, y = playerBounds.y}, -- Top-right
+        {x = playerBounds.x, y = playerBounds.y + playerBounds.height}, -- Bottom-left
+        {x = playerBounds.x + playerBounds.width, y = playerBounds.y + playerBounds.height}, -- Bottom-right
+        {x = pixelX, y = pixelY} -- Center
+    }
+    
+    for _, point in ipairs(checkPoints) do
+        local tileX = math.floor(point.x / 32) + 1
+        local tileY = math.floor(point.y / 32) + 1
         
-        -- Check for enemy encounter
-        for i, enemy in ipairs(currentRoomEnemies) do
-            if enemy.x == player.x and enemy.y == player.y and enemy:isAlive() then
+        if not currentMap:isWalkable(tileX, tileY) then
+            -- Check if it's a door (doors are walkable when room is cleared)
+            local tile = currentMap:getTile(tileX, tileY)
+            if tile == 9 and roomCleared then
+                -- Door is unlocked, allow passage
+            else
+                return true -- Collision detected
+            end
+        end
+    end
+    
+    return false -- No collision
+end
+
+-- Get tile at pixel position
+function getTileAtPixel(pixelX, pixelY)
+    local tileX = math.floor(pixelX / 32) + 1
+    local tileY = math.floor(pixelY / 32) + 1
+    return currentMap:getTile(tileX, tileY)
+end
+
+-- Check for enemy encounters
+function checkEnemyEncounter()
+    for i, enemy in ipairs(currentRoomEnemies) do
+        if enemy:isAlive() then
+            -- Check if player is close to enemy (within 20 pixels)
+            local dx = enemy.pixelX - player.pixelX
+            local dy = enemy.pixelY - player.pixelY
+            local distance = math.sqrt(dx * dx + dy * dy)
+            
+            if distance < 20 then
                 startCombat(enemy)
                 return
             end
@@ -269,18 +354,28 @@ function tryMovePlayer(dx, dy)
     end
 end
 
--- Transition through a door to another room
-function transitionThroughDoor(doorX, doorY)
-    -- Find the door and determine direction
+-- Transition through door (pixel-based)
+function transitionThroughDoorPixel()
+    -- Determine which wall we're closest to
     local direction = nil
+    local roomWidth = currentRoom.width * 32
+    local roomHeight = currentRoom.height * 32
     
-    if doorX == 1 then
+    -- Check distances to each wall
+    local distLeft = player.pixelX
+    local distRight = roomWidth - player.pixelX
+    local distTop = player.pixelY
+    local distBottom = roomHeight - player.pixelY
+    
+    local minDist = math.min(distLeft, distRight, distTop, distBottom)
+    
+    if minDist == distLeft then
         direction = {dx = -1, dy = 0}
-    elseif doorX == currentRoom.width then
+    elseif minDist == distRight then
         direction = {dx = 1, dy = 0}
-    elseif doorY == 1 then
+    elseif minDist == distTop then
         direction = {dx = 0, dy = -1}
-    elseif doorY == currentRoom.height then
+    else
         direction = {dx = 0, dy = 1}
     end
     
@@ -297,18 +392,28 @@ function transitionThroughDoor(doorX, doorY)
             
             -- Place player at opposite door
             if direction.dx == 1 then
-                player:setPosition(2, math.floor(nextRoom.height / 2))
+                player:setPosition(32, nextRoom.height * 16)
             elseif direction.dx == -1 then
-                player:setPosition(nextRoom.width - 1, math.floor(nextRoom.height / 2))
+                player:setPosition((nextRoom.width - 1) * 32, nextRoom.height * 16)
             elseif direction.dy == 1 then
-                player:setPosition(math.floor(nextRoom.width / 2), 2)
+                player:setPosition(nextRoom.width * 16, 32)
             else
-                player:setPosition(math.floor(nextRoom.width / 2), nextRoom.height - 1)
+                player:setPosition(nextRoom.width * 16, (nextRoom.height - 1) * 32)
             end
         end
     end
 end
 
+-- Old tile-based movement function (kept for compatibility)
+function tryMovePlayer(dx, dy)
+    local newX = player.x + dx
+    local newY = player.y + dy
+    
+    -- Convert to pixel movement
+    tryMovePlayerSmooth(dx * 32, dy * 32)
+end
+
+-- Transition through a door to another room
 -- Advance to next floor
 function advanceToNextFloor()
     floorNumber = floorNumber + 1
@@ -393,12 +498,12 @@ function draw()
     
     if gameState == "explore" then
         -- Draw map
-        currentMap:draw(player.x, player.y)
+        currentMap:draw(player.pixelX, player.pixelY)
         
         -- Draw enemies
         for _, enemy in ipairs(currentRoomEnemies) do
             if enemy:isAlive() then
-                enemy:draw(player.x, player.y, currentMap.tileSize)
+                enemy:draw(player.pixelX, player.pixelY, currentMap.tileSize)
             end
         end
         
@@ -415,9 +520,12 @@ function draw()
         
         -- Check if player is near goal and show prompt
         if currentRoom and currentRoom.type == "exit" then
-            local distX = math.abs(player.x - currentMap.goalX)
-            local distY = math.abs(player.y - currentMap.goalY)
-            if distX <= 1 and distY <= 1 then
+            local goalPixelX = (currentMap.goalX - 1) * 32 + 16
+            local goalPixelY = (currentMap.goalY - 1) * 32 + 16
+            local distX = math.abs(player.pixelX - goalPixelX)
+            local distY = math.abs(player.pixelY - goalPixelY)
+            
+            if distX <= 32 and distY <= 32 then
                 gfx.setColor(gfx.kColorBlack)
                 gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
                 local promptText = roomCleared and "→ NEXT FLOOR" or "→ DEFEAT ENEMIES"
@@ -463,20 +571,24 @@ function drawLockedDoorIndicators()
     for y = 1, currentRoom.height do
         for x = 1, currentRoom.width do
             if currentMap:getTile(x, y) == 9 then
-                -- Calculate screen position
-                local offsetX = (screenWidth / 2) - (player.x * currentMap.tileSize) + (currentMap.tileSize / 2)
-                local offsetY = (screenHeight / 2) - (player.y * currentMap.tileSize) + (currentMap.tileSize / 2)
-                local drawX = offsetX + (x - 1) * currentMap.tileSize
-                local drawY = offsetY + (y - 1) * currentMap.tileSize
+                -- Calculate screen position (pixel-based)
+                local doorPixelX = (x - 1) * 32 + 16
+                local doorPixelY = (y - 1) * 32 + 16
+                
+                local offsetX = (screenWidth / 2) - player.pixelX
+                local offsetY = (screenHeight / 2) - player.pixelY
+                
+                local drawX = offsetX + doorPixelX
+                local drawY = offsetY + doorPixelY
                 
                 -- Draw lock icon if on screen
                 if drawX >= 0 and drawX < screenWidth and drawY >= 0 and drawY < screenHeight then
                     gfx.setColor(gfx.kColorBlack)
-                    gfx.fillCircleAtPoint(drawX + 16, drawY + 16, 6)
+                    gfx.fillCircleAtPoint(drawX, drawY, 6)
                     gfx.setColor(gfx.kColorWhite)
-                    gfx.fillCircleAtPoint(drawX + 16, drawY + 16, 4)
+                    gfx.fillCircleAtPoint(drawX, drawY, 4)
                     gfx.setColor(gfx.kColorBlack)
-                    gfx.fillRect(drawX + 14, drawY + 16, 4, 4)
+                    gfx.fillRect(drawX - 2, drawY, 4, 4)
                 end
             end
         end

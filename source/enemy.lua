@@ -17,9 +17,11 @@ function Enemy:init(name, level, spriteKey)
     self.level = level or 1
     self.spriteKey = spriteKey -- Key to look up custom sprite
     
-    -- Position
-    self.x = 0
+    -- Position (pixel-based)
+    self.x = 0  -- Tile position (for compatibility)
     self.y = 0
+    self.pixelX = 0  -- Actual pixel position
+    self.pixelY = 0
     
     -- Stats scaled by level
     self.maxHP = 10 + (level * 5)
@@ -69,6 +71,8 @@ end
 function Enemy:setPosition(x, y)
     self.x = x
     self.y = y
+    self.pixelX = (x - 1) * 32 + 16
+    self.pixelY = (y - 1) * 32 + 16
 end
 
 -- Take damage
@@ -95,7 +99,7 @@ function Enemy:getAttackPower()
 end
 
 -- Draw enemy on map (relative to player position)
-function Enemy:draw(playerX, playerY, tileSize)
+function Enemy:draw(playerPixelX, playerPixelY, tileSize)
     if not self:isAlive() then
         return
     end
@@ -104,12 +108,12 @@ function Enemy:draw(playerX, playerY, tileSize)
     local screenWidth = 400
     local screenHeight = 240
     
-    -- Calculate enemy position relative to player
-    local offsetX = (screenWidth / 2) - (playerX * tileSize) + (tileSize / 2)
-    local offsetY = (screenHeight / 2) - (playerY * tileSize) + (tileSize / 2)
+    -- Calculate enemy position relative to player (pixel-based)
+    local offsetX = (screenWidth / 2) - playerPixelX
+    local offsetY = (screenHeight / 2) - playerPixelY
     
-    local drawX = offsetX + (self.x - 1) * tileSize
-    local drawY = offsetY + (self.y - 1) * tileSize
+    local drawX = offsetX + self.pixelX
+    local drawY = offsetY + self.pixelY
     
     -- Only draw if on screen
     if drawX >= -tileSize and drawX <= screenWidth and 
@@ -119,29 +123,37 @@ function Enemy:draw(playerX, playerY, tileSize)
         local sprite = self.spriteKey and Enemy.sprites[self.spriteKey]
         
         if sprite then
-            -- Draw custom sprite
-            sprite:draw(drawX, drawY)
+            -- Draw custom sprite centered
+            sprite:draw(drawX - 16, drawY - 16)
         else
             -- Draw default enemy triangle
             gfx.setColor(gfx.kColorBlack)
             gfx.fillTriangle(
-                drawX + tileSize/2, drawY + 4,
-                drawX + 4, drawY + tileSize - 4,
-                drawX + tileSize - 4, drawY + tileSize - 4
+                drawX, drawY - 10,
+                drawX - 10, drawY + 10,
+                drawX + 10, drawY + 10
             )
         end
         
-        -- Draw health bar
+        -- Draw health bar above enemy
         local barWidth = 24
         local barHeight = 3
         local healthPercent = self.currentHP / self.maxHP
         
+        local barX = drawX - barWidth / 2
+        local barY = drawY - 18
+        
+        -- Health bar border
         gfx.setColor(gfx.kColorBlack)
-        gfx.drawRect(drawX + 4, drawY - 5, barWidth, barHeight)
+        gfx.drawRect(barX, barY, barWidth, barHeight)
+        
+        -- Health bar background
         gfx.setColor(gfx.kColorWhite)
-        gfx.fillRect(drawX + 5, drawY - 4, barWidth - 2, barHeight - 2)
+        gfx.fillRect(barX + 1, barY + 1, barWidth - 2, barHeight - 2)
+        
+        -- Health bar fill
         gfx.setColor(gfx.kColorBlack)
-        gfx.fillRect(drawX + 5, drawY - 4, (barWidth - 2) * healthPercent, barHeight - 2)
+        gfx.fillRect(barX + 1, barY + 1, (barWidth - 2) * healthPercent, barHeight - 2)
     end
 end
 
