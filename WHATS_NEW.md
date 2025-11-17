@@ -2,7 +2,14 @@
 
 ## Major Features Added
 
-### 1. Procedural Dungeon Generation (Enter the Gungeon Style)
+### 1. Smooth 2D Movement (Undertale-Style)
+- **Pixel-based movement** - No longer locked to tile grid
+- **Continuous movement** - Hold buttons for smooth, fluid motion
+- **8-direction movement** - Move diagonally with normalized speed
+- **Pixel-perfect collision** - Accurate collision detection at pixel level
+- **Free exploration** - Move anywhere within walkable areas
+
+### 2. Procedural Dungeon Generation (Enter the Gungeon Style)
 - **Room-based dungeons** with 6 rooms per floor
 - **Multiple room sizes** - small, medium, and large rooms
 - **Smart room placement** using grid-based layout
@@ -10,13 +17,13 @@
 - **Special room types**: Start room, exit room, and normal rooms
 - **Floor progression** - advance through increasingly difficult floors
 
-### 2. Room Locking System
+### 3. Room Locking System
 - **Defeat all enemies to unlock doors** - core gameplay mechanic
 - **Visual locked door indicators** - lock icons appear on locked doors
 - **Clear feedback** - "Room cleared! Doors unlocked!" message
 - **Strategic gameplay** - must clear rooms to progress
 
-### 3. Custom Tile System
+### 4. Custom Tile System
 - **Upload custom tile images** (32x32 PNG)
 - **Define tile properties** via JSON configuration
 - **Configurable hitboxes** - precise collision control
@@ -24,21 +31,22 @@
 - **Fallback to programmatic drawing** if no image provided
 - **Example tilesets included** for reference
 
-### 4. Custom Enemy Sprites
+### 5. Custom Enemy Sprites
 - **Upload your own enemy images** (32x32 PNG)
 - **Sprite key system** - associate sprites with enemy types
 - **Automatic sprite loading** from JSON config
 - **Health bars on enemies** - visual HP indicators
 - **Graceful fallback** - default triangle if sprite not found
 
-### 5. Enhanced UI
+### 6. Enhanced UI
 - **Visual HP bar** - graphical health display
 - **Visual XP bar** - progress to next level
 - **Floor indicator** - shows current dungeon floor
 - **Polished design** - shadows, borders, and better layout
 - **Combat UI improvements** - enhanced character sprites and layouts
+- **Cleaner player rendering** - No tile background for smoother look
 
-### 6. Polish & Feel
+### 7. Polish & Feel
 - **Improved player sprite** - face with eyes and smile
 - **Better enemy design** - enhanced default sprites
 - **Lock indicators** - visual feedback for locked doors

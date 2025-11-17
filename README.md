@@ -1,9 +1,10 @@
 # Playdate RPG
 
-A procedural dungeon crawler RPG for the [Playdate](https://play.date/) handheld console, featuring custom tile support, enemy sprites, and Enter the Gungeon-style gameplay.
+A procedural dungeon crawler RPG for the [Playdate](https://play.date/) handheld console, featuring Undertale-style smooth 2D movement, custom tile support, enemy sprites, and Enter the Gungeon-style procedural dungeons.
 
 ## Features
 
+- **Smooth 2D movement** - Undertale-style free pixel-based movement, not grid-locked
 - **Procedural dungeon generation** - Enter the Gungeon-style room-based dungeons
 - **Room locking system** - Defeat all enemies to unlock doors
 - **Turn-based combat system** with random encounters
@@ -31,12 +32,12 @@ pdc source BasicRPG.pdx
 
 ## Gameplay
 
-- **Move**: D-Pad
+- **Move**: D-Pad (smooth 8-direction movement)
 - **Attack** (in combat): A Button
 - **Run** (in combat): B Button
 - **Debug Mode**: SELECT Button (shows tile IDs and hitboxes)
 
-Explore procedurally generated dungeons, defeat all enemies in each room to unlock doors, and advance through floors!
+Explore procedurally generated dungeons with smooth, fluid movement! Defeat all enemies in each room to unlock doors, navigate through connected rooms, and advance through increasingly difficult floors!
 
 ## How to Expand
 
