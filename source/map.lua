@@ -20,6 +20,11 @@ function Map:init()
     self.TILE_TREE = 2
     self.TILE_ROCK = 3
     self.TILE_WALL = 4
+    self.TILE_GOAL = 5  -- Exit/Door tile for progression
+    
+    -- Goal position
+    self.goalX = 0
+    self.goalY = 0
 end
 
 -- Generate a room-based map (Undertale-style)
@@ -71,6 +76,11 @@ function Map:generate(width, height)
             self.tiles[y][x] = self.TILE_ROCK
         end
     end
+    
+    -- Add goal/exit door at opposite side from spawn (top-right)
+    self.goalX = width - 1
+    self.goalY = 2
+    self.tiles[self.goalY][self.goalX] = self.TILE_GOAL
 end
 
 -- Check if a tile is walkable
@@ -187,5 +197,26 @@ function Map:drawTile(tileType, x, y)
         gfx.fillRect(x, y, self.tileSize, self.tileSize)
         gfx.setColor(gfx.kColorWhite)
         gfx.drawRect(x + 2, y + 2, self.tileSize - 4, self.tileSize - 4)
+        
+    elseif tileType == self.TILE_GOAL then
+        -- Draw goal/door (distinctive pattern with star)
+        gfx.setColor(gfx.kColorWhite)
+        gfx.fillRect(x, y, self.tileSize, self.tileSize)
+        gfx.setColor(gfx.kColorBlack)
+        gfx.drawRect(x, y, self.tileSize, self.tileSize)
+        
+        -- Draw a star/diamond shape to indicate goal
+        local centerX = x + self.tileSize / 2
+        local centerY = y + self.tileSize / 2
+        gfx.fillTriangle(
+            centerX, centerY - 8,
+            centerX - 8, centerY,
+            centerX + 8, centerY
+        )
+        gfx.fillTriangle(
+            centerX, centerY + 8,
+            centerX - 8, centerY,
+            centerX + 8, centerY
+        )
     end
 end

@@ -6,9 +6,10 @@ import "CoreLibs/graphics"
 
 class('UI').extends()
 
-function UI:init(player)
+function UI:init(player, roomNumber)
     UI.super.init(self)
     self.player = player
+    self.roomNumber = roomNumber or 1
 end
 
 -- Draw the HUD during exploration
@@ -35,6 +36,11 @@ function UI:draw()
         self.player.maxHP
     )
     gfx.drawText(leftText, 8, 10)
+    
+    -- Center: Room number
+    local centerText = string.format("Room %d", self.roomNumber)
+    local centerTextWidth = gfx.getTextSize(centerText)
+    gfx.drawText(centerText, (screenWidth - centerTextWidth) / 2, 10)
     
     -- Right side: XP progress
     local rightText = string.format("XP:%d/%d", 
