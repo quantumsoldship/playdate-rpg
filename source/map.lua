@@ -156,7 +156,7 @@ function Map:drawTile(tileType, x, y)
         gfx.fillRect(x, y, self.tileSize, self.tileSize)
         gfx.setColor(gfx.kColorBlack)
         gfx.drawRect(x, y, self.tileSize, self.tileSize)
-        gfx.fillCircle(x + self.tileSize / 2, y + self.tileSize / 2, 5)
+        gfx.fillCircleAtPoint(x + self.tileSize / 2, y + self.tileSize / 2, 5)
         
     elseif tileType == self.TILE_ROCK then
         -- Draw rock

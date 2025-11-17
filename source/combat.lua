@@ -90,7 +90,7 @@ function Combat:draw()
     gfx.drawText("DEF: " .. self.player.defense, 20, 85)
     
     -- Draw player sprite
-    gfx.fillCircle(70, 110, 15)
+    gfx.fillCircleAtPoint(70, 110, 15)
     
     -- Draw enemy info
     gfx.drawText(self.enemy.name, screenWidth - 120, 40)
