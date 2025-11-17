@@ -63,11 +63,11 @@ function initialize()
     -- Create dungeon generator
     dungeonGenerator = DungeonGenerator()
     
-    -- Generate first floor
-    generateNewFloor()
-    
     -- Create UI
     ui = UI(player, floorNumber)
+    
+    -- Generate first floor
+    generateNewFloor()
     
     print("RPG Game Initialized!")
     print("Defeat all enemies to unlock doors!")
