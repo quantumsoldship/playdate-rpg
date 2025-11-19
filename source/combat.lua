@@ -173,7 +173,7 @@ end
 function Combat:drawHealthBar(x, y, width, current, max)
     local gfx <const> = playdate.graphics
     local height = 10
-    local percent = math.max(0, math.min(1, current / max))
+    local percent = math.max(0, math.min(1, current / math.max(1, max)))
     
     -- Border (double line for better visibility)
     gfx.setColor(gfx.kColorBlack)
