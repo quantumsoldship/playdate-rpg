@@ -36,10 +36,11 @@ function utils.inRange(value, min, max)
     return value >= min and value <= max
 end
 
--- Convert tile coordinates to pixel coordinates
+-- Convert tile coordinates to pixel coordinates (centers on tile)
 function utils.tileToPixel(tileX, tileY, tileSize)
-    return (tileX - 1) * tileSize + tileSize / 2, 
-           (tileY - 1) * tileSize + tileSize / 2
+    local halfTile = tileSize * 0.5
+    return (tileX - 1) * tileSize + halfTile, 
+           (tileY - 1) * tileSize + halfTile
 end
 
 -- Convert pixel coordinates to tile coordinates
@@ -110,13 +111,14 @@ function utils.shuffleTable(tbl)
     return tbl
 end
 
--- Deep copy a table (optimized to only copy values, not keys)
+-- Deep copy a table
+-- Note: Keys are copied by reference (typically strings/numbers), values are deep copied
 function utils.deepCopy(original)
     local copy
     if type(original) == 'table' then
         copy = {}
         for key, value in pairs(original) do
-            copy[key] = utils.deepCopy(value)  -- Only deep copy values
+            copy[key] = utils.deepCopy(value)  -- Recursively copy values
         end
     else
         copy = original

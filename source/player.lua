@@ -142,8 +142,8 @@ end
 function Player:getAttackPower()
     local basePower = self.attack
     
-    -- Add weapon bonus if equipped (safe check for attackBonus property)
-    if self.weapon and self.weapon.attackBonus ~= nil then
+    -- Add weapon bonus if equipped
+    if self.weapon and self.weapon.attackBonus then
         basePower = basePower + self.weapon.attackBonus
     end
     

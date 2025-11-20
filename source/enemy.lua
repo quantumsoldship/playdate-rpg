@@ -112,6 +112,15 @@ function Enemy:draw(playerPixelX, playerPixelY, tileSize)
     
     local gfx <const> = playdate.graphics
     
+    -- Quick bounds check before expensive calculations
+    -- Approximate check: if enemy is too far from player, skip entirely
+    local maxViewDistance = config.SCREEN_WIDTH + config.OFFSCREEN_MARGIN * 2
+    local dx = math.abs(self.pixelX - playerPixelX)
+    local dy = math.abs(self.pixelY - playerPixelY)
+    if dx > maxViewDistance or dy > maxViewDistance then
+        return
+    end
+    
     -- Calculate enemy position relative to player (pixel-based)
     local offsetX = (config.SCREEN_WIDTH / 2) - playerPixelX
     local offsetY = (config.SCREEN_HEIGHT / 2) - playerPixelY
@@ -119,7 +128,7 @@ function Enemy:draw(playerPixelX, playerPixelY, tileSize)
     local drawX = offsetX + self.pixelX
     local drawY = offsetY + self.pixelY
     
-    -- Only draw if on screen (with margin for partial visibility)
+    -- Precise on-screen check
     if not utils.isOnScreen(drawX, drawY, config.OFFSCREEN_MARGIN, config.SCREEN_WIDTH, config.SCREEN_HEIGHT) then
         return
     end
