@@ -3,11 +3,19 @@
 
 import "CoreLibs/object"
 import "CoreLibs/graphics"
+import "config"
+
+local config = import "config"
 
 class('UI').extends()
 
 function UI:init(player, roomNumber)
     UI.super.init(self)
+    
+    if not player then
+        error("UI requires a player instance")
+    end
+    
     self.player = player
     self.roomNumber = roomNumber or 1
 end
@@ -15,18 +23,16 @@ end
 -- Draw the HUD during exploration
 function UI:draw()
     local gfx <const> = playdate.graphics
-    local screenWidth = 400
-    local screenHeight = 240
     
-    -- Draw polished panel at top with shadow effect
+    -- Draw polished panel at top with shadow effect (use config value)
     gfx.setColor(gfx.kColorBlack)
-    gfx.fillRect(0, 0, screenWidth, 34)
+    gfx.fillRect(0, 0, config.SCREEN_WIDTH, config.HUD_HEIGHT)
     
     -- Inner panel with border
     gfx.setColor(gfx.kColorWhite)
-    gfx.fillRect(2, 2, screenWidth - 4, 30)
+    gfx.fillRect(2, 2, config.SCREEN_WIDTH - 4, config.HUD_HEIGHT - 4)
     gfx.setColor(gfx.kColorBlack)
-    gfx.drawRect(2, 2, screenWidth - 4, 30)
+    gfx.drawRect(2, 2, config.SCREEN_WIDTH - 4, config.HUD_HEIGHT - 4)
     
     -- Draw player stats with improved layout
     gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
@@ -61,10 +67,10 @@ function UI:draw()
     gfx.setFont(gfx.getSystemFont(gfx.font.kVariantBold))
     local centerText = string.format("FLOOR %d", self.roomNumber)
     local centerTextWidth = gfx.getTextSize(centerText)
-    gfx.drawText(centerText, (screenWidth - centerTextWidth) / 2, 10)
+    gfx.drawText(centerText, (config.SCREEN_WIDTH - centerTextWidth) / 2, 10)
     
     -- Right side: XP bar (visual)
-    local xpBarX = screenWidth - 110
+    local xpBarX = config.SCREEN_WIDTH - 110
     local xpBarY = 10
     local xpBarWidth = 100
     local xpBarHeight = 12

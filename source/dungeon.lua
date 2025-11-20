@@ -4,15 +4,18 @@
 
 import "CoreLibs/object"
 import "CoreLibs/graphics"
+import "config"
+
+local config = import "config"
 
 class('DungeonGenerator').extends()
 
 function DungeonGenerator:init()
     DungeonGenerator.super.init(self)
     
-    -- Grid-based room placement
-    self.gridWidth = 5
-    self.gridHeight = 5
+    -- Grid-based room placement (use config values)
+    self.gridWidth = config.DUNGEON_GRID_WIDTH
+    self.gridHeight = config.DUNGEON_GRID_HEIGHT
     self.roomGrid = {}
     
     -- Room templates
@@ -36,7 +39,13 @@ end
 
 -- Generate a dungeon floor
 function DungeonGenerator:generate(roomCount)
-    roomCount = roomCount or 6
+    roomCount = roomCount or config.DUNGEON_ROOMS_PER_FLOOR
+    
+    -- Validate input
+    if roomCount < 1 then
+        print("Warning: Invalid room count, using default")
+        roomCount = config.DUNGEON_ROOMS_PER_FLOOR
+    end
     
     -- Initialize grid
     self.roomGrid = {}
@@ -57,9 +66,9 @@ function DungeonGenerator:generate(roomCount)
     table.insert(rooms, startRoom)
     self.roomGrid[startY][startX] = startRoom
     
-    -- Place additional rooms
+    -- Place additional rooms (use config value for max attempts)
     local attempts = 0
-    local maxAttempts = roomCount * 10
+    local maxAttempts = config.MAX_ROOM_PLACEMENT_ATTEMPTS
     
     while #rooms < roomCount and attempts < maxAttempts do
         attempts = attempts + 1

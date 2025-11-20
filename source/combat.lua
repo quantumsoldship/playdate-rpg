@@ -3,22 +3,32 @@
 
 import "CoreLibs/object"
 import "CoreLibs/graphics"
+import "config"
+import "utils"
+
+local config = import "config"
+local utils = import "utils"
 
 class('Combat').extends()
 
 function Combat:init(player, enemy)
     Combat.super.init(self)
     
+    -- Validate inputs
+    if not player or not enemy then
+        error("Combat requires both player and enemy")
+    end
+    
     self.player = player
     self.enemy = enemy
     
     -- Combat log
     self.log = {}
-    self.maxLogLines = 8
+    self.maxLogLines = config.COMBAT_MAX_LOG_LINES
     
     -- Rewards
-    self.rewardXP = enemy.xpReward
-    self.rewardGold = enemy.goldReward
+    self.rewardXP = enemy.xpReward or 0
+    self.rewardGold = enemy.goldReward or 0
     
     self:addLog("Combat started with " .. enemy.name .. "!")
     self:addLog("Enemy Level: " .. enemy.level .. " HP: " .. enemy.currentHP)
@@ -173,7 +183,7 @@ end
 function Combat:drawHealthBar(x, y, width, current, max)
     local gfx <const> = playdate.graphics
     local height = 10
-    local percent = math.max(0, math.min(1, current / math.max(1, max)))
+    local percent = utils.percentage(current, max)
     
     -- Border (double line for better visibility)
     gfx.setColor(gfx.kColorBlack)

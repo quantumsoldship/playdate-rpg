@@ -1,8 +1,12 @@
 -- Tileset class
 -- Manages tile definitions, images, and hitboxes
+-- Provides flexible tile system for custom maps and tilesets
 
 import "CoreLibs/object"
 import "CoreLibs/graphics"
+import "config"
+
+local config = import "config"
 
 class('Tileset').extends()
 
@@ -10,12 +14,25 @@ function Tileset:init()
     Tileset.super.init(self)
     
     self.tiles = {}
-    self.tileSize = 32
+    self.tileSize = config.TILE_SIZE
     self.images = {}
 end
 
 -- Define a tile with properties
+-- @param id: Unique tile identifier (number)
+-- @param properties: Table containing tile properties
+--   - name: Display name (string)
+--   - walkable: Whether player can walk on tile (boolean, default true)
+--   - image: Image object or nil for programmatic drawing
+--   - hitbox: Collision box {x, y, width, height} (default full tile)
+--   - drawFunc: Custom drawing function(x, y, size)
+--   - category: Tile category (string, default "terrain")
 function Tileset:defineTile(id, properties)
+    if not id or not properties then
+        print("Warning: Cannot define tile with missing id or properties")
+        return
+    end
+    
     self.tiles[id] = {
         id = id,
         name = properties.name or "Unnamed",
@@ -27,8 +44,16 @@ function Tileset:defineTile(id, properties)
     }
 end
 
--- Load a tile image
+-- Load a tile image from file
+-- @param id (number): Tile identifier
+-- @param imagePath (string): Path to image file
+-- @return (boolean): True if successful, false otherwise
 function Tileset:loadTileImage(id, imagePath)
+    if not id or not imagePath then
+        print("Warning: Cannot load tile image with missing id or path")
+        return false
+    end
+    
     local gfx <const> = playdate.graphics
     local image = gfx.image.new(imagePath)
     
@@ -37,17 +62,23 @@ function Tileset:loadTileImage(id, imagePath)
         if self.tiles[id] then
             self.tiles[id].image = image
         end
+        return true
+    else
+        print("Error: Failed to load tile image from " .. imagePath)
+        return false
     end
-    
-    return image ~= nil
 end
 
 -- Get tile definition
+-- @param id (number): Tile identifier
+-- @return (table): Tile definition or nil if not found
 function Tileset:getTile(id)
     return self.tiles[id]
 end
 
 -- Check if tile is walkable
+-- @param id (number): Tile identifier
+-- @return (boolean): True if walkable, false otherwise
 function Tileset:isWalkable(id)
     local tile = self.tiles[id]
     return tile and tile.walkable
