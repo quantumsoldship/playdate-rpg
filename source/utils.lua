@@ -61,6 +61,15 @@ function utils.round(num, decimals)
     return math.floor(num * mult + 0.5) / mult
 end
 
+-- Apply damage variance to a base power value
+-- Uses the configured DAMAGE_VARIANCE to add randomness (default ±20%)
+function utils.applyDamageVariance(basePower, variance)
+    variance = variance or 0.2
+    local minPower = basePower * (1 - variance)
+    local maxPower = basePower * (1 + variance)
+    return math.floor(minPower + math.random() * (maxPower - minPower))
+end
+
 -- Check if a table contains a value
 function utils.tableContains(table, value)
     for _, v in ipairs(table) do

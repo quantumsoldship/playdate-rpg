@@ -100,11 +100,8 @@ end
 
 -- Get attack power
 function Enemy:getAttackPower()
-    -- Add variance using config value (80-120% of base)
-    local variance = config.DAMAGE_VARIANCE
-    local minPower = self.attack * (1 - variance)
-    local maxPower = self.attack * (1 + variance)
-    return math.floor(minPower + math.random() * (maxPower - minPower))
+    -- Apply damage variance using utility function
+    return utils.applyDamageVariance(self.attack, config.DAMAGE_VARIANCE)
 end
 
 -- Draw enemy on map (relative to player position)
@@ -122,9 +119,9 @@ function Enemy:draw(playerPixelX, playerPixelY, tileSize)
     local drawX = offsetX + self.pixelX
     local drawY = offsetY + self.pixelY
     
-    -- Only draw if on screen
-    if not utils.inRange(drawX, -tileSize, config.SCREEN_WIDTH) or
-       not utils.inRange(drawY, -tileSize, config.SCREEN_HEIGHT) then
+    -- Only draw if on screen (with margin for partial visibility)
+    if not utils.inRange(drawX, -config.OFFSCREEN_MARGIN, config.SCREEN_WIDTH + config.OFFSCREEN_MARGIN) or
+       not utils.inRange(drawY, -config.OFFSCREEN_MARGIN, config.SCREEN_HEIGHT + config.OFFSCREEN_MARGIN) then
         return
     end
     

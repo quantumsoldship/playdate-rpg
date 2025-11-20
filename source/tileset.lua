@@ -45,9 +45,9 @@ function Tileset:defineTile(id, properties)
 end
 
 -- Load a tile image from file
--- @param id: Tile identifier
--- @param imagePath: Path to image file
--- @return: boolean indicating success
+-- @param id (number): Tile identifier
+-- @param imagePath (string): Path to image file
+-- @return (boolean): True if successful, false otherwise
 function Tileset:loadTileImage(id, imagePath)
     if not id or not imagePath then
         print("Warning: Cannot load tile image with missing id or path")
@@ -70,11 +70,15 @@ function Tileset:loadTileImage(id, imagePath)
 end
 
 -- Get tile definition
+-- @param id (number): Tile identifier
+-- @return (table): Tile definition or nil if not found
 function Tileset:getTile(id)
     return self.tiles[id]
 end
 
 -- Check if tile is walkable
+-- @param id (number): Tile identifier
+-- @return (boolean): True if walkable, false otherwise
 function Tileset:isWalkable(id)
     local tile = self.tiles[id]
     return tile and tile.walkable

@@ -35,7 +35,7 @@ config.LEVEL_UP_XP_MULTIPLIER = 1.5
 -- Combat Settings
 config.ESCAPE_CHANCE = 50  -- Percentage (0-100)
 config.DAMAGE_VARIANCE = 0.2  -- ±20% damage variance
-config.MIN_DAMAGE = 1  -- Minimum damage dealt in combat
+config.MIN_DAMAGE = 1  -- Minimum damage dealt in combat (prevents infinite combat when defense >= attack)
 
 -- Movement Settings
 config.PLAYER_SPEED = 2  -- Pixels per frame
@@ -56,6 +56,7 @@ config.MAX_ROOM_PLACEMENT_ATTEMPTS = 60  -- 10x room count
 -- UI Settings
 config.HUD_HEIGHT = 34
 config.COMBAT_MAX_LOG_LINES = 8
+config.OFFSCREEN_MARGIN = 32  -- Margin for rendering entities slightly off-screen
 
 -- Enemy Templates (easy to add more!)
 config.ENEMY_TEMPLATES = {

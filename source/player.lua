@@ -147,11 +147,8 @@ function Player:getAttackPower()
         basePower = basePower + self.weapon.attackBonus
     end
     
-    -- Add variance using config value (80-120% of base)
-    local variance = config.DAMAGE_VARIANCE
-    local minPower = basePower * (1 - variance)
-    local maxPower = basePower * (1 + variance)
-    return math.floor(minPower + math.random() * (maxPower - minPower))
+    -- Apply damage variance using utility function
+    return utils.applyDamageVariance(basePower, config.DAMAGE_VARIANCE)
 end
 
 -- Add item to inventory
