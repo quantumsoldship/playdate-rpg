@@ -7,6 +7,8 @@ import "CoreLibs/sprites"
 import "CoreLibs/timer"
 
 -- Import game modules
+import "config"
+import "utils"
 import "player"
 import "tileset"
 import "map"
@@ -16,6 +18,8 @@ import "combat"
 import "ui"
 
 local gfx <const> = playdate.graphics
+local config = import "config"
+local utils = import "utils"
 
 -- Game state
 local gameState = "explore" -- States: explore, combat, menu
@@ -77,16 +81,20 @@ end
 function generateNewFloor()
     print("Generating Floor " .. floorNumber .. "...")
     
-    -- Generate dungeon
-    currentDungeon = dungeonGenerator:generate(6) -- 6 rooms per floor
+    -- Generate dungeon (use config value)
+    currentDungeon = dungeonGenerator:generate(config.DUNGEON_ROOMS_PER_FLOOR)
+    
+    if not currentDungeon or #currentDungeon == 0 then
+        error("Failed to generate dungeon floor")
+    end
     
     -- Start in first room
     currentRoom = currentDungeon[1]
     loadRoom(currentRoom)
     
     -- Place player at spawn point (center of room, in pixels)
-    local spawnX = currentRoom.width * 16 -- Center of room in pixels
-    local spawnY = currentRoom.height * 16
+    local spawnX = currentRoom.width * config.TILE_SIZE / 2
+    local spawnY = currentRoom.height * config.TILE_SIZE / 2
     player:setPosition(spawnX, spawnY)
 end
 
@@ -129,6 +137,11 @@ end
 function spawnEnemiesInRoom(room)
     currentRoomEnemies = {}
     
+    if not room then
+        print("Warning: Cannot spawn enemies in nil room")
+        return
+    end
+    
     -- Don't spawn enemies in start room
     if room.type == "start" then
         roomCleared = true
@@ -136,7 +149,7 @@ function spawnEnemiesInRoom(room)
     end
     
     -- Spawn enemies based on room type and floor
-    local enemyCount = 2
+    local enemyCount = config.INITIAL_ENEMY_COUNT
     if room.type == "large" then
         enemyCount = 3
     elseif room.type == "exit" then
@@ -153,18 +166,18 @@ function spawnEnemiesInRoom(room)
         local x, y
         local attempts = 0
         repeat
-            x = math.random(3, room.width - 2) * 32
-            y = math.random(3, room.height - 2) * 32
+            x = math.random(3, room.width - 2) * config.TILE_SIZE
+            y = math.random(3, room.height - 2) * config.TILE_SIZE
             attempts = attempts + 1
         until (checkWalkablePixel(x, y) and 
-               math.abs(x - player.pixelX) + math.abs(y - player.pixelY) > 96) or
-              attempts > 50
+               math.abs(x - player.pixelX) + math.abs(y - player.pixelY) > config.MIN_ENEMY_SPAWN_DISTANCE) or
+              attempts > config.ENEMY_SPAWN_ATTEMPTS
         
-        if attempts <= 50 then
+        if attempts <= config.ENEMY_SPAWN_ATTEMPTS then
             enemy.pixelX = x
             enemy.pixelY = y
-            enemy.x = math.floor(x / 32) + 1
-            enemy.y = math.floor(y / 32) + 1
+            enemy.x = math.floor(x / config.TILE_SIZE) + 1
+            enemy.y = math.floor(y / config.TILE_SIZE) + 1
             table.insert(currentRoomEnemies, enemy)
         end
     end
@@ -174,8 +187,12 @@ end
 
 -- Check if a pixel position is walkable
 function checkWalkablePixel(pixelX, pixelY)
-    local tileX = math.floor(pixelX / 32) + 1
-    local tileY = math.floor(pixelY / 32) + 1
+    if not currentMap then
+        return false
+    end
+    
+    local tileX = math.floor(pixelX / config.TILE_SIZE) + 1
+    local tileY = math.floor(pixelY / config.TILE_SIZE) + 1
     return currentMap:isWalkable(tileX, tileY)
 end
 
@@ -235,11 +252,10 @@ function updateExplore()
         dx = player.speed
     end
     
-    -- Normalize diagonal movement
+    -- Normalize diagonal movement (use config value)
     if dx ~= 0 and dy ~= 0 then
-        local factor = 0.707 -- 1/sqrt(2)
-        dx = dx * factor
-        dy = dy * factor
+        dx = dx * config.DIAGONAL_MOVEMENT_FACTOR
+        dy = dy * config.DIAGONAL_MOVEMENT_FACTOR
     end
     
     -- Try to move
@@ -296,6 +312,10 @@ end
 
 -- Check collision at pixel position
 function checkCollision(pixelX, pixelY)
+    if not player or not currentMap then
+        return true -- Block movement if critical data missing
+    end
+    
     local playerBounds = {
         x = pixelX - player.size / 2,
         y = pixelY - player.size / 2,
@@ -313,8 +333,8 @@ function checkCollision(pixelX, pixelY)
     }
     
     for _, point in ipairs(checkPoints) do
-        local tileX = math.floor(point.x / 32) + 1
-        local tileY = math.floor(point.y / 32) + 1
+        local tileX = math.floor(point.x / config.TILE_SIZE) + 1
+        local tileY = math.floor(point.y / config.TILE_SIZE) + 1
         
         if not currentMap:isWalkable(tileX, tileY) then
             -- Check if it's a door (doors are walkable when room is cleared)
@@ -332,21 +352,27 @@ end
 
 -- Get tile at pixel position
 function getTileAtPixel(pixelX, pixelY)
-    local tileX = math.floor(pixelX / 32) + 1
-    local tileY = math.floor(pixelY / 32) + 1
+    if not currentMap then
+        return nil
+    end
+    
+    local tileX = math.floor(pixelX / config.TILE_SIZE) + 1
+    local tileY = math.floor(pixelY / config.TILE_SIZE) + 1
     return currentMap:getTile(tileX, tileY)
 end
 
 -- Check for enemy encounters
 function checkEnemyEncounter()
+    if not currentRoomEnemies then
+        return
+    end
+    
     for i, enemy in ipairs(currentRoomEnemies) do
         if enemy:isAlive() then
-            -- Check if player is close to enemy (within 20 pixels)
-            local dx = enemy.pixelX - player.pixelX
-            local dy = enemy.pixelY - player.pixelY
-            local distance = math.sqrt(dx * dx + dy * dy)
+            -- Check if player is close to enemy (use utility function)
+            local distance = utils.distance(player.pixelX, player.pixelY, enemy.pixelX, enemy.pixelY)
             
-            if distance < 20 then
+            if distance < config.ENEMY_ENCOUNTER_DISTANCE then
                 startCombat(enemy)
                 return
             end
@@ -356,10 +382,15 @@ end
 
 -- Transition through door (pixel-based)
 function transitionThroughDoorPixel()
+    if not currentRoom then
+        print("Warning: Cannot transition - no current room")
+        return
+    end
+    
     -- Determine which wall we're closest to
     local direction = nil
-    local roomWidth = currentRoom.width * 32
-    local roomHeight = currentRoom.height * 32
+    local roomWidth = currentRoom.width * config.TILE_SIZE
+    local roomHeight = currentRoom.height * config.TILE_SIZE
     
     -- Check distances to each wall
     local distLeft = player.pixelX
@@ -390,15 +421,15 @@ function transitionThroughDoorPixel()
             print("Entering new room...")
             loadRoom(nextRoom)
             
-            -- Place player at opposite door
+            -- Place player at opposite door (use config for tile size)
             if direction.dx == 1 then
-                player:setPosition(32, nextRoom.height * 16)
+                player:setPosition(config.TILE_SIZE, nextRoom.height * config.TILE_SIZE / 2)
             elseif direction.dx == -1 then
-                player:setPosition((nextRoom.width - 1) * 32, nextRoom.height * 16)
+                player:setPosition((nextRoom.width - 1) * config.TILE_SIZE, nextRoom.height * config.TILE_SIZE / 2)
             elseif direction.dy == 1 then
-                player:setPosition(nextRoom.width * 16, 32)
+                player:setPosition(nextRoom.width * config.TILE_SIZE / 2, config.TILE_SIZE)
             else
-                player:setPosition(nextRoom.width * 16, (nextRoom.height - 1) * 32)
+                player:setPosition(nextRoom.width * config.TILE_SIZE / 2, (nextRoom.height - 1) * config.TILE_SIZE)
             end
         end
     end
@@ -406,11 +437,8 @@ end
 
 -- Old tile-based movement function (kept for compatibility)
 function tryMovePlayer(dx, dy)
-    local newX = player.x + dx
-    local newY = player.y + dy
-    
-    -- Convert to pixel movement
-    tryMovePlayerSmooth(dx * 32, dy * 32)
+    -- Convert to pixel movement (use config for tile size)
+    tryMovePlayerSmooth(dx * config.TILE_SIZE, dy * config.TILE_SIZE)
 end
 
 -- Transition through a door to another room
@@ -473,8 +501,8 @@ function updateCombat()
                 end
             end
         elseif playdate.buttonJustPressed(playdate.kButtonB) then
-            -- Try to run
-            if math.random(100) <= 50 then
+            -- Try to run (use config value)
+            if math.random(100) <= config.ESCAPE_CHANCE then
                 print("Escaped!")
                 endCombat()
             else

@@ -2,6 +2,11 @@
 -- Manages player stats, position, and progression
 
 import "CoreLibs/object"
+import "config"
+import "utils"
+
+local config = import "config"
+local utils = import "utils"
 
 class('Player').extends()
 
@@ -14,18 +19,18 @@ function Player:init()
     self.pixelX = 0  -- Actual pixel position
     self.pixelY = 0
     
-    -- Movement
-    self.speed = 2  -- Pixels per frame
-    self.size = 16  -- Player collision size
+    -- Movement (use config values)
+    self.speed = config.PLAYER_SPEED
+    self.size = config.PLAYER_SIZE
     
-    -- Stats
-    self.level = 1
+    -- Stats (use config values where available)
+    self.level = config.PLAYER_START_LEVEL
     self.xp = 0
-    self.xpToNextLevel = 100
-    self.maxHP = 20
-    self.currentHP = 20
-    self.attack = 5
-    self.defense = 2
+    self.xpToNextLevel = config.PLAYER_XP_TO_LEVEL
+    self.maxHP = config.PLAYER_START_HP
+    self.currentHP = config.PLAYER_START_HP
+    self.attack = config.PLAYER_START_ATTACK
+    self.defense = config.PLAYER_START_DEFENSE
     
     -- Inventory (expandable)
     self.inventory = {}
@@ -41,16 +46,14 @@ function Player:setPosition(x, y)
     self.pixelX = x
     self.pixelY = y
     -- Update tile position for compatibility
-    self.x = math.floor(x / 32) + 1
-    self.y = math.floor(y / 32) + 1
+    self.x, self.y = utils.pixelToTile(x, y, config.TILE_SIZE)
 end
 
 -- Set player tile position (converts to pixels)
 function Player:setTilePosition(tileX, tileY)
     self.x = tileX
     self.y = tileY
-    self.pixelX = (tileX - 1) * 32 + 16
-    self.pixelY = (tileY - 1) * 32 + 16
+    self.pixelX, self.pixelY = utils.tileToPixel(tileX, tileY, config.TILE_SIZE)
 end
 
 -- Move player (pixel-based)
@@ -59,8 +62,7 @@ function Player:movePixels(dx, dy)
     self.pixelY = self.pixelY + dy
     
     -- Update tile position
-    self.x = math.floor(self.pixelX / 32) + 1
-    self.y = math.floor(self.pixelY / 32) + 1
+    self.x, self.y = utils.pixelToTile(self.pixelX, self.pixelY, config.TILE_SIZE)
 end
 
 -- Get collision bounds
@@ -75,18 +77,26 @@ end
 
 -- Take damage
 function Player:takeDamage(damage)
-    local actualDamage = math.max(1, damage - self.defense)
-    self.currentHP = self.currentHP - actualDamage
-    
-    if self.currentHP < 0 then
-        self.currentHP = 0
+    -- Validate input
+    if not damage or damage < 0 then
+        print("Warning: Invalid damage value: " .. tostring(damage))
+        damage = 0
     end
+    
+    local actualDamage = math.max(config.MIN_DAMAGE, damage - self.defense)
+    self.currentHP = math.max(0, self.currentHP - actualDamage)
     
     return actualDamage
 end
 
 -- Heal
 function Player:heal(amount)
+    -- Validate input
+    if not amount or amount < 0 then
+        print("Warning: Invalid heal amount: " .. tostring(amount))
+        return
+    end
+    
     self.currentHP = math.min(self.maxHP, self.currentHP + amount)
 end
 
@@ -97,6 +107,12 @@ end
 
 -- Gain XP
 function Player:gainXP(amount)
+    -- Validate input
+    if not amount or amount < 0 then
+        print("Warning: Invalid XP amount: " .. tostring(amount))
+        return
+    end
+    
     self.xp = self.xp + amount
     
     -- Check for level up
@@ -110,14 +126,14 @@ function Player:levelUp()
     self.level = self.level + 1
     self.xp = self.xp - self.xpToNextLevel
     
-    -- Increase stats
-    self.maxHP = self.maxHP + 5
+    -- Increase stats (use config values)
+    self.maxHP = self.maxHP + config.LEVEL_UP_HP_BONUS
     self.currentHP = self.maxHP -- Full heal on level up
-    self.attack = self.attack + 2
-    self.defense = self.defense + 1
+    self.attack = self.attack + config.LEVEL_UP_ATTACK_BONUS
+    self.defense = self.defense + config.LEVEL_UP_DEFENSE_BONUS
     
     -- Increase XP needed for next level
-    self.xpToNextLevel = math.floor(self.xpToNextLevel * 1.5)
+    self.xpToNextLevel = math.floor(self.xpToNextLevel * config.LEVEL_UP_XP_MULTIPLIER)
     
     print("Level Up! Now level " .. self.level)
 end
@@ -127,12 +143,15 @@ function Player:getAttackPower()
     local basePower = self.attack
     
     -- Add weapon bonus if equipped
-    if self.weapon then
+    if self.weapon and self.weapon.attackBonus then
         basePower = basePower + self.weapon.attackBonus
     end
     
-    -- Add some randomness (80-120% of base)
-    return math.floor(basePower * (0.8 + math.random() * 0.4))
+    -- Add variance using config value (80-120% of base)
+    local variance = config.DAMAGE_VARIANCE
+    local minPower = basePower * (1 - variance)
+    local maxPower = basePower * (1 + variance)
+    return math.floor(minPower + math.random() * (maxPower - minPower))
 end
 
 -- Add item to inventory
@@ -158,12 +177,10 @@ end
 -- Draw player (center of screen)
 function Player:draw()
     local gfx <const> = playdate.graphics
-    local screenWidth = 400
-    local screenHeight = 240
     
     -- Draw at screen center
-    local drawX = screenWidth / 2
-    local drawY = screenHeight / 2
+    local drawX = config.SCREEN_WIDTH / 2
+    local drawY = config.SCREEN_HEIGHT / 2
     
     -- Draw character (circle with border)
     gfx.setColor(gfx.kColorBlack)
@@ -182,7 +199,7 @@ function Player:draw()
     -- Draw health bar above player
     local barWidth = 28
     local barHeight = 4
-    local healthPercent = self.currentHP / math.max(1, self.maxHP)
+    local healthPercent = utils.percentage(self.currentHP, self.maxHP)
     
     local barX = drawX - barWidth / 2
     local barY = drawY - 18

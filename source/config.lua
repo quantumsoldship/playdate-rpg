@@ -35,6 +35,27 @@ config.LEVEL_UP_XP_MULTIPLIER = 1.5
 -- Combat Settings
 config.ESCAPE_CHANCE = 50  -- Percentage (0-100)
 config.DAMAGE_VARIANCE = 0.2  -- ±20% damage variance
+config.MIN_DAMAGE = 1  -- Minimum damage dealt in combat
+
+-- Movement Settings
+config.PLAYER_SPEED = 2  -- Pixels per frame
+config.PLAYER_SIZE = 16  -- Player collision size in pixels
+config.DIAGONAL_MOVEMENT_FACTOR = 0.707  -- 1/sqrt(2) for normalized diagonal movement
+
+-- Encounter Settings
+config.ENEMY_ENCOUNTER_DISTANCE = 20  -- Pixels - distance to trigger combat
+config.MIN_ENEMY_SPAWN_DISTANCE = 96  -- Pixels - minimum distance from player
+config.ENEMY_SPAWN_ATTEMPTS = 50  -- Max attempts to find valid spawn position
+
+-- Dungeon Generation Settings
+config.DUNGEON_ROOMS_PER_FLOOR = 6
+config.DUNGEON_GRID_WIDTH = 5
+config.DUNGEON_GRID_HEIGHT = 5
+config.MAX_ROOM_PLACEMENT_ATTEMPTS = 60  -- 10x room count
+
+-- UI Settings
+config.HUD_HEIGHT = 34
+config.COMBAT_MAX_LOG_LINES = 8
 
 -- Enemy Templates (easy to add more!)
 config.ENEMY_TEMPLATES = {

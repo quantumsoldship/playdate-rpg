@@ -3,6 +3,11 @@
 
 import "CoreLibs/object"
 import "CoreLibs/graphics"
+import "config"
+import "utils"
+
+local config = import "config"
+local utils = import "utils"
 
 class('Enemy').extends()
 
@@ -14,7 +19,7 @@ function Enemy:init(name, level, spriteKey)
     
     -- Basic info
     self.name = name or "Enemy"
-    self.level = level or 1
+    self.level = math.max(1, level or 1)  -- Ensure level is at least 1
     self.spriteKey = spriteKey -- Key to look up custom sprite
     
     -- Position (pixel-based)
@@ -24,14 +29,14 @@ function Enemy:init(name, level, spriteKey)
     self.pixelY = 0
     
     -- Stats scaled by level
-    self.maxHP = 10 + (level * 5)
+    self.maxHP = 10 + (self.level * 5)
     self.currentHP = self.maxHP
-    self.attack = 3 + (level * 2)
-    self.defense = 1 + level
+    self.attack = 3 + (self.level * 2)
+    self.defense = 1 + self.level
     
     -- Rewards
-    self.xpReward = 20 * level
-    self.goldReward = 5 * level
+    self.xpReward = 20 * self.level
+    self.goldReward = 5 * self.level
 end
 
 -- Load a sprite for an enemy type
@@ -71,18 +76,19 @@ end
 function Enemy:setPosition(x, y)
     self.x = x
     self.y = y
-    self.pixelX = (x - 1) * 32 + 16
-    self.pixelY = (y - 1) * 32 + 16
+    self.pixelX, self.pixelY = utils.tileToPixel(x, y, config.TILE_SIZE)
 end
 
 -- Take damage
 function Enemy:takeDamage(damage)
-    local actualDamage = math.max(1, damage - self.defense)
-    self.currentHP = self.currentHP - actualDamage
-    
-    if self.currentHP < 0 then
-        self.currentHP = 0
+    -- Validate input
+    if not damage or damage < 0 then
+        print("Warning: Invalid damage value: " .. tostring(damage))
+        damage = 0
     end
+    
+    local actualDamage = math.max(config.MIN_DAMAGE, damage - self.defense)
+    self.currentHP = math.max(0, self.currentHP - actualDamage)
     
     return actualDamage
 end
@@ -94,8 +100,11 @@ end
 
 -- Get attack power
 function Enemy:getAttackPower()
-    -- Add some randomness (80-120% of base)
-    return math.floor(self.attack * (0.8 + math.random() * 0.4))
+    -- Add variance using config value (80-120% of base)
+    local variance = config.DAMAGE_VARIANCE
+    local minPower = self.attack * (1 - variance)
+    local maxPower = self.attack * (1 + variance)
+    return math.floor(minPower + math.random() * (maxPower - minPower))
 end
 
 -- Draw enemy on map (relative to player position)
@@ -105,56 +114,55 @@ function Enemy:draw(playerPixelX, playerPixelY, tileSize)
     end
     
     local gfx <const> = playdate.graphics
-    local screenWidth = 400
-    local screenHeight = 240
     
     -- Calculate enemy position relative to player (pixel-based)
-    local offsetX = (screenWidth / 2) - playerPixelX
-    local offsetY = (screenHeight / 2) - playerPixelY
+    local offsetX = (config.SCREEN_WIDTH / 2) - playerPixelX
+    local offsetY = (config.SCREEN_HEIGHT / 2) - playerPixelY
     
     local drawX = offsetX + self.pixelX
     local drawY = offsetY + self.pixelY
     
     -- Only draw if on screen
-    if drawX >= -tileSize and drawX <= screenWidth and 
-       drawY >= -tileSize and drawY <= screenHeight then
-        
-        -- Check if we have a custom sprite
-        local sprite = self.spriteKey and Enemy.sprites[self.spriteKey]
-        
-        if sprite then
-            -- Draw custom sprite centered
-            sprite:draw(drawX - 16, drawY - 16)
-        else
-            -- Draw default enemy triangle
-            gfx.setColor(gfx.kColorBlack)
-            gfx.fillTriangle(
-                drawX, drawY - 10,
-                drawX - 10, drawY + 10,
-                drawX + 10, drawY + 10
-            )
-        end
-        
-        -- Draw health bar above enemy
-        local barWidth = 24
-        local barHeight = 3
-        local healthPercent = self.currentHP / math.max(1, self.maxHP)
-        
-        local barX = drawX - barWidth / 2
-        local barY = drawY - 18
-        
-        -- Health bar border
-        gfx.setColor(gfx.kColorBlack)
-        gfx.drawRect(barX, barY, barWidth, barHeight)
-        
-        -- Health bar background
-        gfx.setColor(gfx.kColorWhite)
-        gfx.fillRect(barX + 1, barY + 1, barWidth - 2, barHeight - 2)
-        
-        -- Health bar fill
-        gfx.setColor(gfx.kColorBlack)
-        gfx.fillRect(barX + 1, barY + 1, (barWidth - 2) * healthPercent, barHeight - 2)
+    if not utils.inRange(drawX, -tileSize, config.SCREEN_WIDTH) or
+       not utils.inRange(drawY, -tileSize, config.SCREEN_HEIGHT) then
+        return
     end
+    
+    -- Check if we have a custom sprite
+    local sprite = self.spriteKey and Enemy.sprites[self.spriteKey]
+    
+    if sprite then
+        -- Draw custom sprite centered
+        sprite:draw(drawX - 16, drawY - 16)
+    else
+        -- Draw default enemy triangle
+        gfx.setColor(gfx.kColorBlack)
+        gfx.fillTriangle(
+            drawX, drawY - 10,
+            drawX - 10, drawY + 10,
+            drawX + 10, drawY + 10
+        )
+    end
+    
+    -- Draw health bar above enemy
+    local barWidth = 24
+    local barHeight = 3
+    local healthPercent = utils.percentage(self.currentHP, self.maxHP)
+    
+    local barX = drawX - barWidth / 2
+    local barY = drawY - 18
+    
+    -- Health bar border
+    gfx.setColor(gfx.kColorBlack)
+    gfx.drawRect(barX, barY, barWidth, barHeight)
+    
+    -- Health bar background
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(barX + 1, barY + 1, barWidth - 2, barHeight - 2)
+    
+    -- Health bar fill
+    gfx.setColor(gfx.kColorBlack)
+    gfx.fillRect(barX + 1, barY + 1, (barWidth - 2) * healthPercent, barHeight - 2)
 end
 
 -- Create enemy from template (for easy expansion)
