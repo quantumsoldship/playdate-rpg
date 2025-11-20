@@ -120,8 +120,7 @@ function Enemy:draw(playerPixelX, playerPixelY, tileSize)
     local drawY = offsetY + self.pixelY
     
     -- Only draw if on screen (with margin for partial visibility)
-    if not utils.inRange(drawX, -config.OFFSCREEN_MARGIN, config.SCREEN_WIDTH + config.OFFSCREEN_MARGIN) or
-       not utils.inRange(drawY, -config.OFFSCREEN_MARGIN, config.SCREEN_HEIGHT + config.OFFSCREEN_MARGIN) then
+    if not utils.isOnScreen(drawX, drawY, config.OFFSCREEN_MARGIN, config.SCREEN_WIDTH, config.SCREEN_HEIGHT) then
         return
     end
     

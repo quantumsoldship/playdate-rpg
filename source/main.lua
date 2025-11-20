@@ -380,6 +380,29 @@ function checkEnemyEncounter()
     end
 end
 
+-- Get player spawn position at opposite door based on entry direction
+-- @param room: Room to spawn player in
+-- @param entryDirection: Direction player entered from {dx, dy}
+-- @return: pixelX, pixelY coordinates for player spawn
+local function getOppositeDoorPosition(room, entryDirection)
+    local centerX = room.width * config.TILE_SIZE / 2
+    local centerY = room.height * config.TILE_SIZE / 2
+    
+    if entryDirection.dx == 1 then
+        -- Entered from left, spawn at left side
+        return config.TILE_SIZE, centerY
+    elseif entryDirection.dx == -1 then
+        -- Entered from right, spawn at right side
+        return (room.width - 1) * config.TILE_SIZE, centerY
+    elseif entryDirection.dy == 1 then
+        -- Entered from top, spawn at top
+        return centerX, config.TILE_SIZE
+    else
+        -- Entered from bottom, spawn at bottom
+        return centerX, (room.height - 1) * config.TILE_SIZE
+    end
+end
+
 -- Transition through door (pixel-based)
 function transitionThroughDoorPixel()
     if not currentRoom then
@@ -421,16 +444,9 @@ function transitionThroughDoorPixel()
             print("Entering new room...")
             loadRoom(nextRoom)
             
-            -- Place player at opposite door (use config for tile size)
-            if direction.dx == 1 then
-                player:setPosition(config.TILE_SIZE, nextRoom.height * config.TILE_SIZE / 2)
-            elseif direction.dx == -1 then
-                player:setPosition((nextRoom.width - 1) * config.TILE_SIZE, nextRoom.height * config.TILE_SIZE / 2)
-            elseif direction.dy == 1 then
-                player:setPosition(nextRoom.width * config.TILE_SIZE / 2, config.TILE_SIZE)
-            else
-                player:setPosition(nextRoom.width * config.TILE_SIZE / 2, (nextRoom.height - 1) * config.TILE_SIZE)
-            end
+            -- Place player at opposite door using helper function
+            local spawnX, spawnY = getOppositeDoorPosition(nextRoom, direction)
+            player:setPosition(spawnX, spawnY)
         end
     end
 end

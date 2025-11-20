@@ -21,8 +21,14 @@ function utils.distance(x1, y1, x2, y2)
 end
 
 -- Linear interpolation between two values
+-- Note: Clamps t for safety. Use lerpUnclamped for performance-critical paths
 function utils.lerp(a, b, t)
     return a + (b - a) * utils.clamp(t, 0, 1)
+end
+
+-- Linear interpolation without clamping (faster, assumes t is in [0,1])
+function utils.lerpUnclamped(a, b, t)
+    return a + (b - a) * t
 end
 
 -- Check if a value is within a range
@@ -70,6 +76,21 @@ function utils.applyDamageVariance(basePower, variance)
     return math.floor(minPower + math.random() * (maxPower - minPower))
 end
 
+-- Check if a position is visible on screen (with optional margin)
+-- @param x: X coordinate in screen space
+-- @param y: Y coordinate in screen space  
+-- @param margin: Extra margin for partial visibility (default 0)
+-- @param screenWidth: Screen width (default 400)
+-- @param screenHeight: Screen height (default 240)
+-- @return: boolean indicating if position is on screen
+function utils.isOnScreen(x, y, margin, screenWidth, screenHeight)
+    margin = margin or 0
+    screenWidth = screenWidth or 400
+    screenHeight = screenHeight or 240
+    return x >= -margin and x <= screenWidth + margin and
+           y >= -margin and y <= screenHeight + margin
+end
+
 -- Check if a table contains a value
 function utils.tableContains(table, value)
     for _, v in ipairs(table) do
@@ -89,13 +110,13 @@ function utils.shuffleTable(tbl)
     return tbl
 end
 
--- Deep copy a table
+-- Deep copy a table (optimized to only copy values, not keys)
 function utils.deepCopy(original)
     local copy
     if type(original) == 'table' then
         copy = {}
         for key, value in pairs(original) do
-            copy[utils.deepCopy(key)] = utils.deepCopy(value)
+            copy[key] = utils.deepCopy(value)  -- Only deep copy values
         end
     else
         copy = original
